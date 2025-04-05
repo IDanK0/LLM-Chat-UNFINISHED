@@ -66,6 +66,8 @@ export default function MessageInput({ chatId }: MessageInputProps) {
       e.preventDefault();
       if (message.trim()) {
         sendMessageMutation.mutate(message);
+        // Reset textarea height
+        e.currentTarget.style.height = '36px';
       }
     }
     // Con Shift+Enter la textarea gestisce automaticamente l'inserimento di una nuova riga
