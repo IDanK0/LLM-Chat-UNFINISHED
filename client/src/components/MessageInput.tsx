@@ -51,6 +51,11 @@ export default function MessageInput({ chatId }: MessageInputProps) {
     e.preventDefault();
     if (message.trim()) {
       sendMessageMutation.mutate(message);
+      // Reset textarea height after sending
+      const textarea = e.currentTarget.querySelector('textarea');
+      if (textarea) {
+        textarea.style.height = '36px';
+      }
     }
   };
   
