@@ -63,22 +63,34 @@ export default function Chat() {
               ) : (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="flex items-center gap-1 border-primary/20 bg-primary/10">
-                      <span className="font-medium text-sm">{selectedModel}</span>
-                      <ChevronDownIcon className="h-4 w-4" />
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex items-center gap-1 border-primary/30 bg-[#101c38] rounded-xl shadow-md hover:bg-primary/20 transition-all duration-300 transform hover:scale-105"
+                    >
+                      <span className="font-medium text-sm text-white">{selectedModel}</span>
+                      <ChevronDownIcon className="h-4 w-4 text-primary" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start">
-                    <DropdownMenuItem onClick={() => setSelectedModel("Llama 3.1 8b Instruct")}>
+                  <DropdownMenuContent align="start" className="bg-[#101c38] border-primary/30 rounded-xl shadow-xl">
+                    <DropdownMenuItem 
+                      onClick={() => setSelectedModel("Llama 3.1 8b Instruct")}
+                      className={`text-white hover:bg-primary/20 rounded-lg transition-all duration-200 my-1 
+                        ${selectedModel === "Llama 3.1 8b Instruct" ? "bg-primary/10 font-medium" : ""}`}
+                    >
                       Llama 3.1 8b Instruct
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setSelectedModel("Gemma 2 12b it Instruct")}>
-                      Gemma 2 12b it Instruct
+                    <DropdownMenuItem 
+                      onClick={() => setSelectedModel("Gemma 3 12b it Instruct")}
+                      className={`text-white hover:bg-primary/20 rounded-lg transition-all duration-200 my-1
+                        ${selectedModel === "Gemma 3 12b it Instruct" ? "bg-primary/10 font-medium" : ""}`}
+                    >
+                      Gemma 3 12b it Instruct
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
-              <div className="text-xs text-muted-foreground">Attiva la visualizzazione avanzata</div>
+
             </div>
           </div>
         </header>

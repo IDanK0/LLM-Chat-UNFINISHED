@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -6,7 +6,21 @@ import { Chat } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { PlusIcon, SearchIcon, GlobeIcon } from "lucide-react";
+import { 
+  PlusIcon, 
+  SearchIcon, 
+  GlobeIcon, 
+  Trash2Icon, 
+  PenIcon, 
+  ShareIcon, 
+  MoreHorizontalIcon 
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface SidebarProps {
   isMobile: boolean;
@@ -69,10 +83,10 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
     <aside className={sidebarClasses}>
       <div className="p-4 flex items-center justify-between border-b border-border">
         <div className="flex items-center space-x-2">
-          <div className="rounded-full bg-white/10 w-8 h-8 flex items-center justify-center">
-            <GlobeIcon className="h-5 w-5" />
+          <div className="rounded-full bg-primary/30 w-8 h-8 flex items-center justify-center transition-all duration-300 transform hover:scale-110">
+            <GlobeIcon className="h-5 w-5 text-primary" />
           </div>
-          <span className="font-medium">Owen</span>
+          <span className="font-medium text-white">LLM Chat</span>
         </div>
         {isMobile && (
           <Button variant="ghost" size="sm" className="p-1" onClick={onClose}>
@@ -114,16 +128,32 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
             <>
               <div className="font-medium px-2 py-1 text-muted-foreground">Oggi</div>
               {todayChats.map(chat => (
-                <Link 
-                  key={chat.id} 
-                  href={`/chat/${chat.id}`}
+                <div 
+                  key={chat.id}
                   className={cn(
-                    "mt-1 rounded-md p-2 cursor-pointer transition-colors block",
-                    location === `/chat/${chat.id}` ? "bg-white/5" : "hover:bg-white/10"
+                    "mt-1 rounded-md group cursor-pointer transition-all duration-300 flex items-center",
+                    location === `/chat/${chat.id}` ? "bg-[#101c38] border border-primary/20" : "hover:bg-[#101c38] border border-transparent hover:border-primary/20"
                   )}
                 >
-                  <div className="text-white">{chat.title}</div>
-                </Link>
+                  <Link 
+                    href={`/chat/${chat.id}`}
+                    className="p-2 flex-1 min-w-0"
+                  >
+                    <div className="text-white truncate">{chat.title}</div>
+                  </Link>
+                  
+                  <div className="opacity-0 group-hover:opacity-100 pr-2 flex space-x-1 transition-opacity duration-300">
+                    <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full hover:bg-primary/20">
+                      <PenIcon className="h-3.5 w-3.5 text-primary" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full hover:bg-primary/20">
+                      <ShareIcon className="h-3.5 w-3.5 text-primary" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full hover:bg-primary/20">
+                      <Trash2Icon className="h-3.5 w-3.5 text-primary" />
+                    </Button>
+                  </div>
+                </div>
               ))}
             </>
           )}
@@ -132,16 +162,32 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
             <>
               <div className="font-medium px-2 py-1 text-muted-foreground mt-1">Ultimi 30 giorni</div>
               {recentChats.map(chat => (
-                <Link 
-                  key={chat.id} 
-                  href={`/chat/${chat.id}`}
+                <div 
+                  key={chat.id}
                   className={cn(
-                    "mt-1 rounded-md p-2 cursor-pointer transition-colors block",
-                    location === `/chat/${chat.id}` ? "bg-white/5" : "hover:bg-white/10"
+                    "mt-1 rounded-md group cursor-pointer transition-all duration-300 flex items-center",
+                    location === `/chat/${chat.id}` ? "bg-[#101c38] border border-primary/20" : "hover:bg-[#101c38] border border-transparent hover:border-primary/20"
                   )}
                 >
-                  <div className="text-foreground">{chat.title}</div>
-                </Link>
+                  <Link 
+                    href={`/chat/${chat.id}`}
+                    className="p-2 flex-1 min-w-0"
+                  >
+                    <div className="text-white truncate">{chat.title}</div>
+                  </Link>
+                  
+                  <div className="opacity-0 group-hover:opacity-100 pr-2 flex space-x-1 transition-opacity duration-300">
+                    <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full hover:bg-primary/20">
+                      <PenIcon className="h-3.5 w-3.5 text-primary" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full hover:bg-primary/20">
+                      <ShareIcon className="h-3.5 w-3.5 text-primary" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full hover:bg-primary/20">
+                      <Trash2Icon className="h-3.5 w-3.5 text-primary" />
+                    </Button>
+                  </div>
+                </div>
               ))}
             </>
           )}

@@ -41,29 +41,48 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
           </div>
         ) : (
           messages.map((message) => (
-            <div key={message.id} className="flex items-start mb-6">
+            <div
+              key={message.id}
+              className={cn(
+                "flex items-start mb-6 p-3 rounded-xl transition-all duration-300",
+                message.isUserMessage 
+                  ? "hover:bg-primary/5" 
+                  : "bg-[#101c38] border border-primary/30 shadow-md hover:shadow-lg hover:border-primary/40"
+              )}
+            >
               <div className={cn(
                 "flex-shrink-0 mr-4 w-8 h-8 rounded-full flex items-center justify-center text-sm",
                 message.isUserMessage 
                   ? "bg-blue-500/20 text-blue-500" 
-                  : "bg-primary/20 text-primary"
+                  : "bg-primary/30 text-primary"
               )}>
                 {message.isUserMessage ? "Tu" : "AI"}
               </div>
-              <div>
-                <p className="text-foreground">{message.content}</p>
+              <div className="flex-1">
+                <p className={cn(
+                  "text-foreground leading-relaxed",
+                  message.isUserMessage ? "text-white/90" : "text-white"
+                )}>
+                  {message.content}
+                </p>
               </div>
             </div>
           ))
         )}
         
         {messages.length === 0 && (
-          <div className="flex items-start mb-6">
-            <div className="flex-shrink-0 mr-4 w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-sm text-primary">
+          <div className="flex items-start mb-6 p-3 rounded-xl bg-[#101c38] border border-primary/30 shadow-md hover:shadow-lg hover:border-primary/40 transition-all duration-300">
+            <div className="flex-shrink-0 mr-4 w-8 h-8 rounded-full bg-primary/30 flex items-center justify-center text-sm text-primary">
               AI
             </div>
-            <div>
-              <p className="text-lg font-medium">Buon pomeriggio, come posso essere utile?</p>
+            <div className="flex-1">
+              <p className="text-lg font-medium text-white leading-relaxed">
+                Buon pomeriggio, come posso essere utile oggi?
+              </p>
+              <p className="text-white/70 text-sm mt-2">
+                Puoi chiedermi qualsiasi cosa in italiano. Sono qui per aiutarti a trovare informazioni,
+                scrivere contenuti o risolvere problemi.
+              </p>
             </div>
           </div>
         )}

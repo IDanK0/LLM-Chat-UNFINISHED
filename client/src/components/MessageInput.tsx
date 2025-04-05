@@ -12,8 +12,14 @@ import {
   GlobeIcon, 
   ImagePlusIcon,
   ArrowRightIcon,
-  PlusIcon
+  PlusIcon,
+  FileIcon,
+  PaperclipIcon
 } from "lucide-react";
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+} from "@/components/ui/toggle-group";
 
 interface MessageInputProps {
   chatId: number;
@@ -21,6 +27,7 @@ interface MessageInputProps {
 
 export default function MessageInput({ chatId }: MessageInputProps) {
   const [message, setMessage] = useState("");
+  const [webSearchEnabled, setWebSearchEnabled] = useState(false);
   
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
@@ -44,81 +51,96 @@ export default function MessageInput({ chatId }: MessageInputProps) {
       sendMessageMutation.mutate(message);
     }
   };
+
+  const toggleWebSearch = () => {
+    setWebSearchEnabled(!webSearchEnabled);
+  };
   
   return (
     <div className="border-t border-border bg-background p-4 md:p-6">
       <div className="max-w-3xl mx-auto">
         <form onSubmit={handleSendMessage}>
-          <div className="bg-background border border-border rounded-lg mb-4">
-            <div className="p-3">
+          <div className="bg-[#101c38] border border-primary/30 rounded-xl mb-4 shadow-lg transition-all duration-300 ease-in-out">
+            <div className="flex items-center p-3">
+              <div className="flex items-center space-x-2 mr-3">
+                <Button
+                  type="button"
+                  variant={webSearchEnabled ? "default" : "ghost"}
+                  size="icon"
+                  className={`rounded-full transition-all duration-300 ${webSearchEnabled ? 'bg-primary/80 text-white shadow-md' : 'hover:bg-primary/20'}`}
+                  onClick={toggleWebSearch}
+                >
+                  <GlobeIcon className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full hover:bg-primary/20 transition-all duration-300"
+                >
+                  <PaperclipIcon className="h-4 w-4" />
+                </Button>
+              </div>
+              
               <Input
                 type="text"
                 placeholder="Come posso aiutarti oggi?"
-                className="w-full bg-transparent border-0 outline-none shadow-none focus-visible:ring-0"
+                className="flex-1 bg-transparent border-0 outline-none shadow-none focus-visible:ring-0 text-sm"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
               />
-            </div>
-            <div className="flex items-center justify-between px-3 py-2 border-t border-border">
-              <div className="flex items-center space-x-1">
-                <Button type="button" variant="ghost" size="icon" className="rounded-md">
-                  <GlobeIcon className="h-5 w-5" />
-                </Button>
-                <Button type="button" variant="ghost" size="icon" className="rounded-md">
-                  <ImagePlusIcon className="h-5 w-5" />
-                </Button>
-              </div>
+              
               <Button 
                 type="submit" 
                 size="icon" 
-                className="rounded-full" 
+                className="rounded-full bg-primary hover:bg-primary/90 ml-3 transition-all duration-300 transform hover:scale-105"
                 disabled={!message.trim() || sendMessageMutation.isPending}
               >
-                <ArrowRightIcon className="h-5 w-5" />
+                <ArrowRightIcon className="h-4 w-4" />
               </Button>
             </div>
           </div>
         </form>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 mt-4">
           <Button 
             variant="outline" 
-            className="bg-white/10 hover:bg-white/15 border-0 text-sm h-9"
+            className="bg-[#101c38] hover:bg-primary/20 border-primary/20 text-sm h-9 rounded-xl transition-all duration-300 transform hover:scale-105"
             onClick={() => setMessage("Puoi generare un'immagine di un gatto che suona il pianoforte?")}
           >
-            <ImageIcon className="h-4 w-4 mr-2" />
-            Crea immagine
+            <ImageIcon className="h-4 w-4 mr-2 text-primary" />
+            <span className="text-white/90">Crea immagine</span>
           </Button>
           <Button 
             variant="outline" 
-            className="bg-white/10 hover:bg-white/15 border-0 text-sm h-9"
+            className="bg-[#101c38] hover:bg-primary/20 border-primary/20 text-sm h-9 rounded-xl transition-all duration-300 transform hover:scale-105"
             onClick={() => setMessage("Puoi scrivere un esempio di codice React per una to-do list?")}
           >
-            <Code2Icon className="h-4 w-4 mr-2" />
-            Codice
+            <Code2Icon className="h-4 w-4 mr-2 text-primary" />
+            <span className="text-white/90">Codice</span>
           </Button>
           <Button 
             variant="outline" 
-            className="bg-white/10 hover:bg-white/15 border-0 text-sm h-9"
+            className="bg-[#101c38] hover:bg-primary/20 border-primary/20 text-sm h-9 rounded-xl transition-all duration-300 transform hover:scale-105"
             onClick={() => setMessage("Aiutami a creare un piano di studio per imparare il machine learning in 3 mesi.")}
           >
-            <PianoIcon className="h-4 w-4 mr-2" />
-            Fai un piano
+            <PianoIcon className="h-4 w-4 mr-2 text-primary" />
+            <span className="text-white/90">Fai un piano</span>
           </Button>
           <Button 
             variant="outline" 
-            className="bg-white/10 hover:bg-white/15 border-0 text-sm h-9"
+            className="bg-[#101c38] hover:bg-primary/20 border-primary/20 text-sm h-9 rounded-xl transition-all duration-300 transform hover:scale-105"
             onClick={() => setMessage("Quali sono gli sviluppi più recenti nell'intelligenza artificiale generativa?")}
           >
-            <NotebookTextIcon className="h-4 w-4 mr-2" />
-            Notizie
+            <NotebookTextIcon className="h-4 w-4 mr-2 text-primary" />
+            <span className="text-white/90">Notizie</span>
           </Button>
           <Button 
             variant="outline" 
-            className="bg-white/10 hover:bg-white/15 border-0 text-sm h-9"
+            className="bg-[#101c38] hover:bg-primary/20 border-primary/20 text-sm h-9 rounded-xl transition-all duration-300 transform hover:scale-105"
             onClick={() => setMessage("Qual è la differenza tra machine learning e deep learning?")}
           >
-            Altro
+            <span className="text-white/90">Altro</span>
           </Button>
         </div>
       </div>
