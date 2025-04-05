@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { generateAIResponse } from "./api";
 import { insertChatSchema, insertMessageSchema } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
@@ -112,10 +113,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create user message
       const userMessage = await storage.createMessage(messageData);
       
-      // Create AI response message
+      // Generate and create AI response message
+      const aiResponseContent = await generateAIResponse(messageData.content);
       const aiResponse = await storage.createMessage({
         chatId: messageData.chatId,
-        content: "Grazie per il tuo messaggio. Come posso aiutarti ulteriormente?",
+        content: aiResponseContent,
         isUserMessage: false
       });
       
