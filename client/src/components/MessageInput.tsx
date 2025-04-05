@@ -33,6 +33,25 @@ export default function MessageInput({ chatId }: MessageInputProps) {
   
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
+      const timestamp = new Date().toISOString();
+      const optimisticUserMessage: Message = {
+        id: Math.random(),
+        chatId,
+        content,
+        isUserMessage: true,
+        createdAt: timestamp
+      };
+      
+      const optimisticAIMessage: Message = {
+        id: Math.random(),
+        chatId,
+        content: "Sto pensando...",
+        isUserMessage: false,
+        createdAt: timestamp
+      };
+      
+      setOptimisticMessages([optimisticUserMessage, optimisticAIMessage]);
+      
       return apiRequest("POST", "/api/messages", {
         chatId,
         content,
@@ -40,10 +59,11 @@ export default function MessageInput({ chatId }: MessageInputProps) {
       });
     },
     onSuccess: () => {
-      // Reset the input
-      setMessage("");
-      // Refresh the messages
+      setOptimisticMessages([]);
       queryClient.invalidateQueries({ queryKey: [`/api/chats/${chatId}/messages`] });
+    },
+    onError: () => {
+      setOptimisticMessages([]);
     }
   });
   
