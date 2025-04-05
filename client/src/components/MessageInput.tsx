@@ -102,8 +102,11 @@ export default function MessageInput({ chatId }: MessageInputProps) {
                 value={message}
                 onChange={(e) => {
                   setMessage(e.target.value);
+                  // Reset height to auto to properly calculate new height
                   e.target.style.height = 'auto';
-                  e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`;
+                  // Set height based on content, with max height of 200px
+                  const newHeight = Math.min(36, Math.max(e.target.scrollHeight, 36));
+                  e.target.style.height = `${newHeight}px`;
                 }}
                 onKeyDown={handleKeyDown}
                 rows={1}
