@@ -59,14 +59,21 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
     queryKey: ['/api/chats'],
   });
   
-  // Create new chat
+  // Create new chat and navigate to it
   const handleNewChat = async () => {
     try {
-      await apiRequest('POST', '/api/chats', { 
+      const response = await apiRequest('POST', '/api/chats', { 
         title: "Nuova Chat" 
       });
+      const newChat = await response.json();
       // Invalidate chats query to refresh the list
       queryClient.invalidateQueries({ queryKey: ['/api/chats'] });
+      // Navigate to the new chat
+      setLocation(`/chat/${newChat.id}`);
+      // Close the sidebar if on mobile
+      if (isMobile) {
+        onClose();
+      }
     } catch (error) {
       console.error('Failed to create new chat', error);
       toast({

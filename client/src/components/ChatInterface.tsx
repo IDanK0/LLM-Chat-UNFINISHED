@@ -123,7 +123,7 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
               </div>
               <div className="flex-1 flex items-center">
                 <p className={cn(
-                  "text-foreground leading-relaxed py-1",
+                  "text-foreground leading-relaxed py-1 break-words whitespace-pre-wrap",
                   message.isUserMessage ? "text-white/90" : "text-white"
                 )}>
                   {message.content}
@@ -161,10 +161,10 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
               AI
             </div>
             <div className="flex-1 flex flex-col justify-center">
-              <p className="text-lg font-medium text-white leading-relaxed">
+              <p className="text-lg font-medium text-white leading-relaxed break-words whitespace-pre-wrap">
                 Buon pomeriggio, come posso essere utile oggi?
               </p>
-              <p className="text-white/70 text-sm mt-2">
+              <p className="text-white/70 text-sm mt-2 break-words whitespace-pre-wrap">
                 Puoi chiedermi qualsiasi cosa in italiano. Sono qui per aiutarti a trovare informazioni,
                 scrivere contenuti o risolvere problemi.
               </p>

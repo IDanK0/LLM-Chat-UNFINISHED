@@ -5,6 +5,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   ImageIcon, 
   Code2Icon, 
@@ -52,6 +53,18 @@ export default function MessageInput({ chatId }: MessageInputProps) {
       sendMessageMutation.mutate(message);
     }
   };
+  
+  // Gestisce la pressione dei tasti nella textarea
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Se viene premuto solo Enter (senza Shift), invia il messaggio
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (message.trim()) {
+        sendMessageMutation.mutate(message);
+      }
+    }
+    // Con Shift+Enter la textarea gestisce automaticamente l'inserimento di una nuova riga
+  };
 
   const toggleWebSearch = () => {
     setWebSearchEnabled(!webSearchEnabled);
@@ -83,12 +96,17 @@ export default function MessageInput({ chatId }: MessageInputProps) {
                 </Button>
               </div>
               
-              <Input
-                type="text"
-                placeholder="Come posso aiutarti oggi?"
-                className="flex-1 bg-transparent border-0 outline-none shadow-none focus-visible:ring-0 text-sm textarea-glow"
+              <Textarea
+                placeholder="Come posso aiutarti oggi? (Shift+Enter per andare a capo)"
+                className="flex-1 bg-transparent border-0 outline-none shadow-none focus-visible:ring-0 text-sm textarea-glow resize-none h-9 py-2 min-h-0 overflow-hidden"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={handleKeyDown}
+                rows={1}
+                style={{
+                  height: message.includes('\n') ? 'auto' : '36px',
+                  maxHeight: '200px'
+                }}
               />
               
               <Button 
