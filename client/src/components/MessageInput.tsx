@@ -98,15 +98,15 @@ export default function MessageInput({ chatId }: MessageInputProps) {
               
               <Textarea
                 placeholder="Come posso aiutarti oggi? (Shift+Enter per andare a capo)"
-                className="flex-1 bg-transparent border-0 outline-none shadow-none focus-visible:ring-0 text-sm textarea-glow resize-none h-9 py-2 min-h-0 overflow-hidden"
+                className="flex-1 bg-transparent border-0 outline-none shadow-none focus-visible:ring-0 text-sm textarea-glow resize-none py-2 min-h-[36px] overflow-hidden transition-all duration-200"
                 value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                onChange={(e) => {
+                  setMessage(e.target.value);
+                  e.target.style.height = 'auto';
+                  e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`;
+                }}
                 onKeyDown={handleKeyDown}
                 rows={1}
-                style={{
-                  height: message.includes('\n') ? 'auto' : '36px',
-                  maxHeight: '200px'
-                }}
               />
               
               <Button 
