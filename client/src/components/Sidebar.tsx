@@ -214,12 +214,12 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
     <>
       <aside className={sidebarClasses}>
         <div className="p-4 flex items-center justify-between border-b border-border">
-          <div className="flex items-center space-x-2">
+          <Link href="/" className="flex items-center space-x-2 cursor-pointer">
             <div className="rounded-full bg-primary/30 w-8 h-8 flex items-center justify-center transition-all duration-300 transform hover:scale-110">
               <GlobeIcon className="h-5 w-5 text-primary" />
             </div>
             <span className="font-medium text-white">LLM Chat</span>
-          </div>
+          </Link>
           {isMobile && (
             <Button variant="ghost" size="sm" className="p-1" onClick={onClose}>
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">

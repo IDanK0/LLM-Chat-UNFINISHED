@@ -41,12 +41,7 @@ export default function Home() {
     }
   };
   
-  // Redirect to the first chat if available
-  useEffect(() => {
-    if (chats.length > 0) {
-      setLocation(`/chat/${chats[0].id}`);
-    }
-  }, [chats, setLocation]);
+  // Non reindirizzare automaticamente, mostra sempre la schermata principale
   
   return (
     <div className="flex h-screen bg-background">
@@ -57,20 +52,23 @@ export default function Home() {
       />
       
       <main className="flex-1 flex flex-col h-full overflow-hidden">
-        <header className="border-b border-border py-3 px-4 flex items-center justify-between bg-background">
-          {isMobile && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="p-1" 
-              onClick={() => setIsSidebarOpen(true)}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
-              </svg>
-            </Button>
-          )}
+        <header className="border-b border-border py-2 px-4 flex items-center justify-between bg-background">
           <div className="flex items-center space-x-2">
+            {isMobile && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="p-1" 
+                onClick={() => setIsSidebarOpen(true)}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                </svg>
+              </Button>
+            )}
+          </div>
+          
+          <div className="flex-1 flex justify-center">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button 
@@ -82,7 +80,7 @@ export default function Home() {
                   <ChevronDownIcon className="h-4 w-4 text-primary" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="bg-[#101c38] border-primary/30 rounded-xl shadow-xl">
+              <DropdownMenuContent align={isMobile ? "center" : "start"} className="bg-[#101c38] border-primary/30 rounded-xl shadow-xl">
                 <DropdownMenuItem 
                   onClick={() => setSelectedModel("Llama 3.1 8b Instruct")}
                   className={`text-white hover:bg-primary/20 rounded-lg transition-all duration-200 my-1 
@@ -99,6 +97,10 @@ export default function Home() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+          </div>
+          
+          <div className="invisible w-8">
+            {/* Spazio vuoto per mantenere il modello centrato */}
           </div>
         </header>
 

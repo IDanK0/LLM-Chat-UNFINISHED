@@ -45,7 +45,7 @@ export default function Chat() {
       />
       
       <main className="flex-1 flex flex-col h-full overflow-hidden">
-        <header className="border-b border-border py-3 px-4 flex items-center justify-between bg-background">
+        <header className="border-b border-border py-2 px-4 flex items-center justify-between bg-background">
           <div className="flex items-center space-x-2">
             {isMobile && (
               <Button 
@@ -57,41 +57,45 @@ export default function Chat() {
                 <MenuIcon className="h-5 w-5" />
               </Button>
             )}
-            <div className="flex items-center space-x-2">
-              {isLoadingChat ? (
-                <Skeleton className="h-5 w-40" />
-              ) : (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="flex items-center gap-1 border-primary/30 bg-[#101c38] rounded-xl shadow-md hover:bg-primary/20 transition-all duration-300 transform hover:scale-105"
-                    >
-                      <span className="font-medium text-sm text-white">{selectedModel}</span>
-                      <ChevronDownIcon className="h-4 w-4 text-primary" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="bg-[#101c38] border-primary/30 rounded-xl shadow-xl">
-                    <DropdownMenuItem 
-                      onClick={() => setSelectedModel("Llama 3.1 8b Instruct")}
-                      className={`text-white hover:bg-primary/20 rounded-lg transition-all duration-200 my-1 
-                        ${selectedModel === "Llama 3.1 8b Instruct" ? "bg-primary/10 font-medium" : ""}`}
-                    >
-                      Llama 3.1 8b Instruct
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => setSelectedModel("Gemma 3 12b it Instruct")}
-                      className={`text-white hover:bg-primary/20 rounded-lg transition-all duration-200 my-1
-                        ${selectedModel === "Gemma 3 12b it Instruct" ? "bg-primary/10 font-medium" : ""}`}
-                    >
-                      Gemma 3 12b it Instruct
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-
-            </div>
+          </div>
+          
+          <div className="flex-1 flex justify-center">
+            {isLoadingChat ? (
+              <Skeleton className="h-5 w-40" />
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex items-center gap-1 border-primary/30 bg-[#101c38] rounded-xl shadow-md hover:bg-primary/20 transition-all duration-300 transform hover:scale-105"
+                  >
+                    <span className="font-medium text-sm text-white">{selectedModel}</span>
+                    <ChevronDownIcon className="h-4 w-4 text-primary" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align={isMobile ? "center" : "start"} className="bg-[#101c38] border-primary/30 rounded-xl shadow-xl">
+                  <DropdownMenuItem 
+                    onClick={() => setSelectedModel("Llama 3.1 8b Instruct")}
+                    className={`text-white hover:bg-primary/20 rounded-lg transition-all duration-200 my-1 
+                      ${selectedModel === "Llama 3.1 8b Instruct" ? "bg-primary/10 font-medium" : ""}`}
+                  >
+                    Llama 3.1 8b Instruct
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => setSelectedModel("Gemma 3 12b it Instruct")}
+                    className={`text-white hover:bg-primary/20 rounded-lg transition-all duration-200 my-1
+                      ${selectedModel === "Gemma 3 12b it Instruct" ? "bg-primary/10 font-medium" : ""}`}
+                  >
+                    Gemma 3 12b it Instruct
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
+          
+          <div className="invisible w-8">
+            {/* Spazio vuoto per mantenere il modello centrato */}
           </div>
         </header>
 
