@@ -6,7 +6,7 @@ import { Chat } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { PlusIcon, SearchIcon, EyeIcon } from "lucide-react";
+import { PlusIcon, SearchIcon, GlobeIcon } from "lucide-react";
 
 interface SidebarProps {
   isMobile: boolean;
@@ -70,7 +70,7 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
       <div className="p-4 flex items-center justify-between border-b border-border">
         <div className="flex items-center space-x-2">
           <div className="rounded-full bg-white/10 w-8 h-8 flex items-center justify-center">
-            <EyeIcon className="h-5 w-5" />
+            <GlobeIcon className="h-5 w-5" />
           </div>
           <span className="font-medium">Owen</span>
         </div>
@@ -114,15 +114,15 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
             <>
               <div className="font-medium px-2 py-1 text-muted-foreground">Oggi</div>
               {todayChats.map(chat => (
-                <Link key={chat.id} href={`/chat/${chat.id}`}>
-                  <a 
-                    className={cn(
-                      "mt-1 rounded-md p-2 cursor-pointer transition-colors block",
-                      location === `/chat/${chat.id}` ? "bg-white/5" : "hover:bg-white/10"
-                    )}
-                  >
-                    <div className="text-white">{chat.title}</div>
-                  </a>
+                <Link 
+                  key={chat.id} 
+                  href={`/chat/${chat.id}`}
+                  className={cn(
+                    "mt-1 rounded-md p-2 cursor-pointer transition-colors block",
+                    location === `/chat/${chat.id}` ? "bg-white/5" : "hover:bg-white/10"
+                  )}
+                >
+                  <div className="text-white">{chat.title}</div>
                 </Link>
               ))}
             </>
@@ -132,15 +132,15 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
             <>
               <div className="font-medium px-2 py-1 text-muted-foreground mt-1">Ultimi 30 giorni</div>
               {recentChats.map(chat => (
-                <Link key={chat.id} href={`/chat/${chat.id}`}>
-                  <a 
-                    className={cn(
-                      "mt-1 rounded-md p-2 cursor-pointer transition-colors block",
-                      location === `/chat/${chat.id}` ? "bg-white/5" : "hover:bg-white/10"
-                    )}
-                  >
-                    <div className="text-foreground">{chat.title}</div>
-                  </a>
+                <Link 
+                  key={chat.id} 
+                  href={`/chat/${chat.id}`}
+                  className={cn(
+                    "mt-1 rounded-md p-2 cursor-pointer transition-colors block",
+                    location === `/chat/${chat.id}` ? "bg-white/5" : "hover:bg-white/10"
+                  )}
+                >
+                  <div className="text-foreground">{chat.title}</div>
                 </Link>
               ))}
             </>

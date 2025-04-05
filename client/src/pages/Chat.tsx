@@ -8,13 +8,20 @@ import ChatInterface from "@/components/ChatInterface";
 import MessageInput from "@/components/MessageInput";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { MenuIcon } from "lucide-react";
+import { MenuIcon, ChevronDownIcon } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function Chat() {
   const isMobile = useIsMobile();
   const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
   const [, params] = useRoute<{ id: string }>("/chat/:id");
   const chatId = params ? parseInt(params.id) : 0;
+  const [selectedModel, setSelectedModel] = useState("Llama 3.1 8b Instruct");
   
   // Fetch chat data
   const { data: chat, isLoading: isLoadingChat } = useQuery<ChatType>({
@@ -54,7 +61,22 @@ export default function Chat() {
               {isLoadingChat ? (
                 <Skeleton className="h-5 w-40" />
               ) : (
-                <span className="font-medium text-sm">Llama 3.1 8b Instruct</span>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="flex items-center gap-1 border-primary/20 bg-primary/10">
+                      <span className="font-medium text-sm">{selectedModel}</span>
+                      <ChevronDownIcon className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    <DropdownMenuItem onClick={() => setSelectedModel("Llama 3.1 8b Instruct")}>
+                      Llama 3.1 8b Instruct
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setSelectedModel("Gemma 2 12b it Instruct")}>
+                      Gemma 2 12b it Instruct
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
               <div className="text-xs text-muted-foreground">Attiva la visualizzazione avanzata</div>
             </div>

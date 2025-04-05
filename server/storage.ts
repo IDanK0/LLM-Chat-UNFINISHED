@@ -41,34 +41,7 @@ export class MemStorage implements IStorage {
     };
     this.users.set(defaultUser.id, defaultUser);
     
-    // Create sample chats
-    const sampleChats = [
-      { title: "Saluti Italiane", userId: defaultUser.id },
-      { title: "Doppiaggio e Adattamento Scopi", userId: defaultUser.id },
-      { title: "Scheda Video per LLM Locale", userId: defaultUser.id },
-      { title: "GPU per AI Locale e LLM", userId: defaultUser.id },
-      { title: "Modelli Owen e Specifiche Tecniche", userId: defaultUser.id }
-    ];
-    
-    sampleChats.forEach((chatData) => {
-      const chat: Chat = {
-        id: this.currentChatId++,
-        userId: chatData.userId,
-        title: chatData.title,
-        createdAt: new Date()
-      };
-      this.chats.set(chat.id, chat);
-      
-      // Add a welcome message to each chat
-      const welcomeMessage: Message = {
-        id: this.currentMessageId++,
-        chatId: chat.id,
-        content: "Buon giorno! Come posso aiutarti oggi?",
-        isUserMessage: false,
-        createdAt: new Date()
-      };
-      this.messages.set(welcomeMessage.id, welcomeMessage);
-    });
+    // Non creare chat di esempio
   }
 
   async getUser(id: number): Promise<User | undefined> {
@@ -117,9 +90,12 @@ export class MemStorage implements IStorage {
   
   async createMessage(insertMessage: InsertMessage): Promise<Message> {
     const id = this.currentMessageId++;
+    // Creiamo un oggetto completo con tutti i campi necessari
     const message: Message = { 
-      ...insertMessage, 
-      id, 
+      id,
+      chatId: insertMessage.chatId,
+      content: insertMessage.content,
+      isUserMessage: insertMessage.isUserMessage === undefined ? true : insertMessage.isUserMessage,
       createdAt: new Date() 
     };
     this.messages.set(id, message);

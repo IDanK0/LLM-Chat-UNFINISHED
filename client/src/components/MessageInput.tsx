@@ -9,7 +9,7 @@ import {
   Code2Icon, 
   PianoIcon, 
   NotebookTextIcon, 
-  EyeIcon, 
+  GlobeIcon, 
   ImagePlusIcon,
   ArrowRightIcon,
   PlusIcon
@@ -62,7 +62,7 @@ export default function MessageInput({ chatId }: MessageInputProps) {
             <div className="flex items-center justify-between px-3 py-2 border-t border-border">
               <div className="flex items-center space-x-1">
                 <Button type="button" variant="ghost" size="icon" className="rounded-md">
-                  <EyeIcon className="h-5 w-5" />
+                  <GlobeIcon className="h-5 w-5" />
                 </Button>
                 <Button type="button" variant="ghost" size="icon" className="rounded-md">
                   <ImagePlusIcon className="h-5 w-5" />
@@ -84,6 +84,7 @@ export default function MessageInput({ chatId }: MessageInputProps) {
           <Button 
             variant="outline" 
             className="bg-white/10 hover:bg-white/15 border-0 text-sm h-9"
+            onClick={() => setMessage("Puoi generare un'immagine di un gatto che suona il pianoforte?")}
           >
             <ImageIcon className="h-4 w-4 mr-2" />
             Crea immagine
@@ -91,6 +92,7 @@ export default function MessageInput({ chatId }: MessageInputProps) {
           <Button 
             variant="outline" 
             className="bg-white/10 hover:bg-white/15 border-0 text-sm h-9"
+            onClick={() => setMessage("Puoi scrivere un esempio di codice React per una to-do list?")}
           >
             <Code2Icon className="h-4 w-4 mr-2" />
             Codice
@@ -98,6 +100,7 @@ export default function MessageInput({ chatId }: MessageInputProps) {
           <Button 
             variant="outline" 
             className="bg-white/10 hover:bg-white/15 border-0 text-sm h-9"
+            onClick={() => setMessage("Aiutami a creare un piano di studio per imparare il machine learning in 3 mesi.")}
           >
             <PianoIcon className="h-4 w-4 mr-2" />
             Fai un piano
@@ -105,6 +108,7 @@ export default function MessageInput({ chatId }: MessageInputProps) {
           <Button 
             variant="outline" 
             className="bg-white/10 hover:bg-white/15 border-0 text-sm h-9"
+            onClick={() => setMessage("Quali sono gli sviluppi più recenti nell'intelligenza artificiale generativa?")}
           >
             <NotebookTextIcon className="h-4 w-4 mr-2" />
             Notizie
@@ -112,6 +116,7 @@ export default function MessageInput({ chatId }: MessageInputProps) {
           <Button 
             variant="outline" 
             className="bg-white/10 hover:bg-white/15 border-0 text-sm h-9"
+            onClick={() => setMessage("Qual è la differenza tra machine learning e deep learning?")}
           >
             Altro
           </Button>
