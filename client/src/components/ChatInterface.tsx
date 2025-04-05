@@ -123,7 +123,7 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
               </div>
               <div className="flex-1 flex items-center">
                 <p className={cn(
-                  "text-foreground leading-relaxed py-1 break-words whitespace-pre-wrap",
+                  "text-foreground leading-relaxed py-1 break-all whitespace-pre-wrap",
                   message.isUserMessage ? "text-white/90" : "text-white"
                 )}>
                   {message.content}
