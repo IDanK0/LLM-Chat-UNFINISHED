@@ -6,8 +6,17 @@ interface Message {
   content: string;
 }
 
-export async function generateAIResponse(userMessage: string): Promise<string> {
+export async function generateAIResponse(userMessage: string, chatId: number): Promise<string> {
   try {
+    // Get chat history from storage
+    const messages = await storage.getMessages(chatId);
+    
+    // Convert messages to the format expected by the API
+    const messageHistory = messages.map(msg => ({
+      role: msg.isUserMessage ? 'user' : 'assistant',
+      content: msg.content
+    }));
+
     const response = await fetch('https://30a0-93-56-113-174.ngrok-free.app/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -17,8 +26,7 @@ export async function generateAIResponse(userMessage: string): Promise<string> {
         model: 'meta-llama-3.1-8b-instruct',
         messages: [
           { role: 'system', content: 'you are an AI assistant.' },
-          { role: 'user', content: "Ciao!" },
-          { role: 'assistant', content: "Ciao! Come posso aiutarti oggi?" },
+          ...messageHistory,
           { role: 'user', content: userMessage }
         ],
         temperature: 0.7,

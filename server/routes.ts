@@ -114,7 +114,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userMessage = await storage.createMessage(messageData);
       
       // Generate and create AI response message
-      const aiResponseContent = await generateAIResponse(messageData.content);
+      const aiResponseContent = await generateAIResponse(messageData.content, messageData.chatId);
       const aiResponse = await storage.createMessage({
         chatId: messageData.chatId,
         content: aiResponseContent,
