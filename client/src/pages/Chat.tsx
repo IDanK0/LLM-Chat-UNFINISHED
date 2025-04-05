@@ -106,7 +106,7 @@ export default function Chat() {
         ) : (
           <>
             <ChatInterface chatId={chatId} />
-            <MessageInput chatId={chatId} />
+            <MessageInput chatId={chatId} selectedModel={selectedModel} />
           </>
         )}
       </main>

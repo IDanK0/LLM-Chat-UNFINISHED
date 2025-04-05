@@ -109,12 +109,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/messages", async (req: Request, res: Response) => {
     try {
       const messageData = insertMessageSchema.parse(req.body);
+      const { modelName } = req.body; // Estrai il nome del modello dalla richiesta
       
       // Create user message
       const userMessage = await storage.createMessage(messageData);
       
-      // Generate and create AI response message
-      const aiResponseContent = await generateAIResponse(messageData.content);
+      // Retrieve chat history
+      const chatHistory = await storage.getMessages(messageData.chatId);
+      
+      // Generate AI response using the complete chat history and selected model
+      const aiResponseContent = await generateAIResponse(chatHistory, modelName);
+      
+      // Create AI response message
       const aiResponse = await storage.createMessage({
         chatId: messageData.chatId,
         content: aiResponseContent,

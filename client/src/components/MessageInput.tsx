@@ -6,6 +6,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Message } from "@/lib/types";
 import { 
   ImageIcon, 
   Code2Icon, 
@@ -24,25 +25,61 @@ import {
 
 interface MessageInputProps {
   chatId: number;
+  selectedModel: string;  // Nuovo prop per il modello selezionato
 }
 
-export default function MessageInput({ chatId }: MessageInputProps) {
+export default function MessageInput({ chatId, selectedModel }: MessageInputProps) {
   const isMobile = useIsMobile();
   const [message, setMessage] = useState("");
   const [webSearchEnabled, setWebSearchEnabled] = useState(false);
   
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
+      // ID temporaneo per il messaggio dell'utente
+      const tempUserMessageId = `temp-user-${Date.now()}`;
+      // ID temporaneo per il messaggio dell'AI "sta pensando..."
+      const tempAIMessageId = `temp-ai-${Date.now()}`;
+      
+      // Creare oggetti messaggio temporanei
+      const optimisticUserMessage = {
+        id: tempUserMessageId,
+        chatId,
+        content,
+        isUserMessage: true,
+        createdAt: new Date().toISOString()
+      };
+      
+      const thinkingAIMessage = {
+        id: tempAIMessageId,
+        chatId,
+        content: "Sta pensando...",
+        isUserMessage: false,
+        createdAt: new Date().toISOString()
+      };
+      
+      // Ottieni i messaggi attuali dalla cache
+      const queryKey = [`/api/chats/${chatId}/messages`];
+      const previousMessages = queryClient.getQueryData<Message[]>(queryKey) || [];
+      
+      // Aggiungi sia il messaggio dell'utente che il messaggio "sta pensando..." dell'AI alla cache
+      queryClient.setQueryData(queryKey, [
+        ...previousMessages, 
+        optimisticUserMessage,
+        thinkingAIMessage
+      ]);
+      
+      // Invia la richiesta al server con il modello selezionato
       return apiRequest("POST", "/api/messages", {
         chatId,
         content,
-        isUserMessage: true
+        isUserMessage: true,
+        modelName: selectedModel  // Aggiungiamo il modello selezionato
       });
     },
     onSuccess: () => {
       // Reset the input
       setMessage("");
-      // Refresh the messages
+      // Refresh the messages to get the real AI response
       queryClient.invalidateQueries({ queryKey: [`/api/chats/${chatId}/messages`] });
     }
   });
