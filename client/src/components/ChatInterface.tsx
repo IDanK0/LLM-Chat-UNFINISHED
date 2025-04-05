@@ -149,6 +149,19 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
                   title="Copia messaggio"
                 >
                   <CopyIcon className="h-3.5 w-3.5 text-primary" />
+
+            {/* Loading indicator */}
+            {sendMessageMutation.isPending && (
+              <div className="relative flex items-start mb-6 p-3 rounded-xl transition-all duration-300 group bg-[#101c38] border border-primary/30 shadow-md animate-pulse">
+                <div className="flex-shrink-0 mr-4 w-8 h-8 rounded-full bg-primary/30 flex items-center justify-center text-sm text-primary self-start mt-0.5">
+                  AI
+                </div>
+                <div className="flex-1 flex items-center">
+                  <div className="h-6 w-24 bg-primary/20 rounded animate-pulse"></div>
+                </div>
+              </div>
+            )}
+
                 </Button>
               </div>
             </div>

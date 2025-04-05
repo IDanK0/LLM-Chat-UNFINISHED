@@ -113,15 +113,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create user message
       const userMessage = await storage.createMessage(messageData);
       
-      // Generate and create AI response message
+      // Send the user message immediately
+      res.status(201).json({ userMessage });
+      
+      // Generate and create AI response message asynchronously
       const aiResponseContent = await generateAIResponse(messageData.content);
-      const aiResponse = await storage.createMessage({
+      await storage.createMessage({
         chatId: messageData.chatId,
         content: aiResponseContent,
         isUserMessage: false
       });
-      
-      res.status(201).json({ userMessage, aiResponse });
     } catch (error) {
       if (error instanceof ZodError) {
         return res.status(400).json({ message: fromZodError(error).message });

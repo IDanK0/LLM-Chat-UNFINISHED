@@ -33,17 +33,22 @@ export default function MessageInput({ chatId }: MessageInputProps) {
   
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
-      return apiRequest("POST", "/api/messages", {
+      const response = await apiRequest("POST", "/api/messages", {
         chatId,
         content,
         isUserMessage: true
       });
+      // Refresh messages to show user message immediately
+      queryClient.invalidateQueries({ queryKey: [`/api/chats/${chatId}/messages`] });
+      // Wait for AI response
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Refresh messages again to get AI response
+      queryClient.invalidateQueries({ queryKey: [`/api/chats/${chatId}/messages`] });
+      return response;
     },
     onSuccess: () => {
       // Reset the input
       setMessage("");
-      // Refresh the messages
-      queryClient.invalidateQueries({ queryKey: [`/api/chats/${chatId}/messages`] });
     }
   });
   
