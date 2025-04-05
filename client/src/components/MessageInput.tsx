@@ -104,7 +104,7 @@ export default function MessageInput({ chatId }: MessageInputProps) {
               </div>
               
               <Textarea
-                placeholder="Come posso aiutarti oggi? (Shift+Enter per andare a capo)"
+                placeholder="Come posso aiutarti oggi?"
                 className="flex-1 bg-transparent border-0 outline-none shadow-none focus-visible:ring-0 text-sm textarea-glow resize-none py-2 min-h-[36px] transition-all duration-200 max-h-[200px] overflow-y-auto"
                 value={message}
                 onChange={(e) => {
