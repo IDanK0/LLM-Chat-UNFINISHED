@@ -121,9 +121,9 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
               )}>
                 {message.isUserMessage ? "Tu" : "AI"}
               </div>
-              <div className="flex-1">
+              <div className="flex-1 flex items-center">
                 <p className={cn(
-                  "text-foreground leading-relaxed",
+                  "text-foreground leading-relaxed py-1",
                   message.isUserMessage ? "text-white/90" : "text-white"
                 )}>
                   {message.content}
@@ -160,7 +160,7 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
             <div className="flex-shrink-0 mr-4 w-8 h-8 rounded-full bg-primary/30 flex items-center justify-center text-sm text-primary self-start mt-0.5">
               AI
             </div>
-            <div className="flex-1">
+            <div className="flex-1 flex flex-col justify-center">
               <p className="text-lg font-medium text-white leading-relaxed">
                 Buon pomeriggio, come posso essere utile oggi?
               </p>
