@@ -1,4 +1,3 @@
-
 import fetch from 'node-fetch';
 
 interface Message {
@@ -6,7 +5,7 @@ interface Message {
   content: string;
 }
 
-export async function generateAIResponse(userMessage: string): Promise<string> {
+export async function generateAIResponse(userMessage: string, messageHistory: Message[]): Promise<string> {
   try {
     const response = await fetch('https://30a0-93-56-113-174.ngrok-free.app/v1/chat/completions', {
       method: 'POST',
@@ -16,9 +15,8 @@ export async function generateAIResponse(userMessage: string): Promise<string> {
       body: JSON.stringify({
         model: 'meta-llama-3.1-8b-instruct',
         messages: [
-          { role: 'system', content: 'you are an AI assistant.' },
-          { role: 'user', content: "Ciao!" },
-          { role: 'assistant', content: "Ciao! Come posso aiutarti oggi?" },
+          { role: 'system', content: 'you are an AI assistant that helps users in Italian.' },
+          ...messageHistory,
           { role: 'user', content: userMessage }
         ],
         temperature: 0.7,
