@@ -24,6 +24,16 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
     queryKey: [`/api/chats/${chatId}/messages`],
   });
 
+  const sendMessageMutation = useMutation({
+    mutationFn: async (content: string) => {
+      return apiRequest("POST", "/api/messages", {
+        chatId,
+        content,
+        isUserMessage: true
+      });
+    }
+  });
+
   // Funzione per copiare il messaggio negli appunti
   const copyToClipboard = (content: string) => {
     navigator.clipboard.writeText(content).then(
