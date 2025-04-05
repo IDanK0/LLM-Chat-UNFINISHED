@@ -86,7 +86,7 @@ export default function MessageInput({ chatId }: MessageInputProps) {
               <Input
                 type="text"
                 placeholder="Come posso aiutarti oggi?"
-                className="flex-1 bg-transparent border-0 outline-none shadow-none focus-visible:ring-0 text-sm"
+                className="flex-1 bg-transparent border-0 outline-none shadow-none focus-visible:ring-0 text-sm textarea-glow"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
               />

@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { CopyIcon, PencilIcon, CheckIcon, XIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -50,9 +51,22 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
     setIsEditDialogOpen(true);
   };
   
-  // Salva messaggio modificato (solo per dimostrazione, il backend non supporta questo)
+  // Simula la salvataggio del messaggio modificato (in una app reale, sarà necessario un endpoint API)
   const handleSaveEdit = () => {
     if (editingMessage && editedContent.trim()) {
+      // In una app reale, qui chiameremmo un'API per aggiornare il messaggio
+      // Qui simuliamo l'aggiornamento aggiornando la cache locale
+      if (editingMessage && messages) {
+        const updatedMessages = messages.map(msg => 
+          msg.id === editingMessage.id 
+            ? { ...msg, content: editedContent } 
+            : msg
+        );
+        
+        // Aggiorniamo manualmente la cache di React Query
+        queryClient.setQueryData([`/api/chats/${chatId}/messages`], updatedMessages);
+      }
+      
       toast({
         title: "Modifica salvata",
         description: "Il messaggio è stato modificato con successo"
@@ -100,7 +114,7 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
               )}
             >
               <div className={cn(
-                "flex-shrink-0 mr-4 w-8 h-8 rounded-full flex items-center justify-center text-sm",
+                "flex-shrink-0 mr-4 w-8 h-8 rounded-full flex items-center justify-center text-sm self-start mt-0.5",
                 message.isUserMessage 
                   ? "bg-blue-500/20 text-blue-500" 
                   : "bg-primary/30 text-primary"
@@ -118,17 +132,15 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
               
               {/* Pulsanti di azione per il messaggio */}
               <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex space-x-1">
-                {message.isUserMessage && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 rounded-full hover:bg-primary/20"
-                    onClick={() => handleEditStart(message)}
-                    title="Modifica messaggio"
-                  >
-                    <PencilIcon className="h-3.5 w-3.5 text-primary" />
-                  </Button>
-                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 rounded-full hover:bg-primary/20"
+                  onClick={() => handleEditStart(message)}
+                  title="Modifica messaggio"
+                >
+                  <PencilIcon className="h-3.5 w-3.5 text-primary" />
+                </Button>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -145,7 +157,7 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
         
         {messages.length === 0 && (
           <div className="relative flex items-start mb-6 p-3 rounded-xl bg-[#101c38] border border-primary/30 shadow-md hover:shadow-lg hover:border-primary/40 transition-all duration-300 group">
-            <div className="flex-shrink-0 mr-4 w-8 h-8 rounded-full bg-primary/30 flex items-center justify-center text-sm text-primary">
+            <div className="flex-shrink-0 mr-4 w-8 h-8 rounded-full bg-primary/30 flex items-center justify-center text-sm text-primary self-start mt-0.5">
               AI
             </div>
             <div className="flex-1">
@@ -160,6 +172,25 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
             
             {/* Pulsanti di azione per il messaggio */}
             <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex space-x-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded-full hover:bg-primary/20"
+                onClick={() => {
+                  setEditingMessage({
+                    id: 0,
+                    chatId: chatId,
+                    content: "Buon pomeriggio, come posso essere utile oggi?\n\nPuoi chiedermi qualsiasi cosa in italiano. Sono qui per aiutarti a trovare informazioni, scrivere contenuti o risolvere problemi.",
+                    isUserMessage: false,
+                    createdAt: new Date().toISOString()
+                  });
+                  setEditedContent("Buon pomeriggio, come posso essere utile oggi?\n\nPuoi chiedermi qualsiasi cosa in italiano. Sono qui per aiutarti a trovare informazioni, scrivere contenuti o risolvere problemi.");
+                  setIsEditDialogOpen(true);
+                }}
+                title="Modifica messaggio"
+              >
+                <PencilIcon className="h-3.5 w-3.5 text-primary" />
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
@@ -183,7 +214,7 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
           <Textarea
             value={editedContent}
             onChange={(e) => setEditedContent(e.target.value)}
-            className="min-h-[100px] mt-2 bg-white/10 border-primary/30 text-white"
+            className="min-h-[100px] mt-2 bg-white/10 border-primary/30 text-white textarea-glow"
           />
           <DialogFooter className="mt-4">
             <Button 
