@@ -7,6 +7,14 @@ interface LlamaMessage {
   content: string;
 }
 
+// Interfaccia per le impostazioni API
+interface ApiRequestSettings {
+  apiUrl?: string;
+  temperature?: number;
+  maxTokens?: number;
+  stream?: boolean;
+}
+
 // Mappa per convertire i nomi dei modelli visualizzati nell'UI ai nomi tecnici per l'API
 const MODEL_NAME_MAP: Record<string, string> = {
   "Llama 3.1 8b Instruct": "meta-llama-3.1-8b-instruct",
@@ -32,16 +40,26 @@ function convertMessagesToLlamaFormat(messages: Message[]): LlamaMessage[] {
   return [systemMessage, ...conversationMessages];
 }
 
-export async function generateAIResponse(messages: Message[], modelName = "Llama 3.1 8b Instruct"): Promise<string> {
+export async function generateAIResponse(
+  messages: Message[], 
+  modelName = "Llama 3.1 8b Instruct",
+  settings?: ApiRequestSettings
+): Promise<string> {
   try {
     // Converti i messaggi nel formato richiesto dall'API
     const formattedMessages = convertMessagesToLlamaFormat(messages);
     
     // Ottieni il nome del modello tecnico dalla mappa usando il nome UI o usa il default
     const apiModelName = MODEL_NAME_MAP[modelName] || "meta-llama-3.1-8b-instruct";
+    
+    // Usa l'URL dell'API dalle impostazioni o quello di default
+    const apiUrl = settings?.apiUrl || 'https://6f7d-2001-b07-5d38-71ae-b374-ce7b-cce3-f552.ngrok-free.app/v1/chat/completions';
+    
     console.log(`Sending request to API with model: ${apiModelName}`);
     console.log('Messages:', JSON.stringify(formattedMessages, null, 2));
-    const response = await fetch('https://8dfb-2001-b07-5d38-71ae-b374-ce7b-cce3-f552.ngrok-free.app/v1/chat/completions', {
+    console.log('API Settings:', JSON.stringify(settings, null, 2));
+    
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -49,9 +67,9 @@ export async function generateAIResponse(messages: Message[], modelName = "Llama
       body: JSON.stringify({
         model: apiModelName,  // Usa il nome del modello selezionato
         messages: formattedMessages,
-        temperature: 0.7,
-        max_tokens: -1,
-        stream: false
+        temperature: settings?.temperature ?? 0.7,
+        max_tokens: settings?.maxTokens ?? -1,
+        stream: settings?.stream ?? false
       })
     });
 

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Message } from "@/lib/types";
+import { getSettings } from "@/lib/settingsStore";
 import { 
   ImageIcon, 
   Code2Icon, 
@@ -35,6 +36,9 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
   
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
+      // Ottieni le impostazioni correnti
+      const apiSettings = getSettings();
+      
       // ID temporaneo per il messaggio dell'utente
       const tempUserMessageId = `temp-user-${Date.now()}`;
       // ID temporaneo per il messaggio dell'AI "sta pensando..."
@@ -68,12 +72,13 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
         thinkingAIMessage
       ]);
       
-      // Invia la richiesta al server con il modello selezionato
+      // Invia la richiesta al server con il modello selezionato e le impostazioni API
       return apiRequest("POST", "/api/messages", {
         chatId,
         content,
         isUserMessage: true,
-        modelName: selectedModel  // Aggiungiamo il modello selezionato
+        modelName: selectedModel,
+        apiSettings // Aggiungiamo le impostazioni dell'API
       });
     },
     onSuccess: () => {

@@ -17,7 +17,8 @@ import {
   FileTextIcon,
   DownloadIcon,
   CopyIcon,
-  FileIcon
+  FileIcon,
+  SettingsIcon
 } from "lucide-react";
 import {
   Dialog,
@@ -37,6 +38,7 @@ import {
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import SettingsDialog from "@/components/SettingsDialog";
 
 interface SidebarProps {
   isMobile: boolean;
@@ -51,6 +53,7 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
   const [newChatTitle, setNewChatTitle] = useState("");
   const { toast } = useToast();
   
@@ -245,6 +248,8 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
             Nuova chat
           </Button>
           
+          {/* Rimosso il pulsante Impostazioni da qui */}
+          
           <div className="relative">
             <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -368,6 +373,18 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
             )}
           </div>
         </div>
+        
+        {/* Aggiungi il pulsante Impostazioni qui in fondo */}
+        <div className="p-4 border-t border-border mt-auto">
+          <Button 
+            variant="outline" 
+            className="w-full bg-[#101c38] hover:bg-primary/20 border-primary/20 text-white flex items-center justify-center"
+            onClick={() => setIsSettingsDialogOpen(true)}
+          >
+            <SettingsIcon className="h-5 w-5 mr-2 text-primary" />
+            Impostazioni
+          </Button>
+        </div>
       </aside>
       
       {/* Dialog per eliminare una chat */}
@@ -442,6 +459,9 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
           </div>
         </DialogContent>
       </Dialog>
+      
+      {/* Dialog per le impostazioni */}
+      <SettingsDialog open={isSettingsDialogOpen} onOpenChange={setIsSettingsDialogOpen} />
     </>
   );
 }
