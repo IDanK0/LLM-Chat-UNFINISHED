@@ -50,12 +50,14 @@ export default function MessageInput({ chatId }: MessageInputProps) {
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (message.trim()) {
-      sendMessageMutation.mutate(message);
+      const currentMessage = message;
+      setMessage("");
       // Reset textarea height after sending
       const textarea = e.currentTarget.querySelector('textarea');
       if (textarea) {
         textarea.style.height = '36px';
       }
+      sendMessageMutation.mutate(currentMessage);
     }
   };
   
@@ -65,9 +67,11 @@ export default function MessageInput({ chatId }: MessageInputProps) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (message.trim()) {
-        sendMessageMutation.mutate(message);
+        const currentMessage = message;
+        setMessage("");
         // Reset textarea height
         e.currentTarget.style.height = '36px';
+        sendMessageMutation.mutate(currentMessage);
       }
     }
     // Con Shift+Enter la textarea gestisce automaticamente l'inserimento di una nuova riga
