@@ -87,3 +87,11 @@ textarea:focus,
     box-shadow: 0 0 0 3px rgba(65, 138, 255, 0.2), 0 0 0 6px rgba(65, 138, 255, 0.1);
   }
 }
+
+/* Make messages wrap properly */
+.message-content {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+}

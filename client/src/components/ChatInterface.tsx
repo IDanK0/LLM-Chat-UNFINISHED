@@ -19,11 +19,11 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
   const [editedContent, setEditedContent] = useState("");
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const { toast } = useToast();
-  
+
   const { data: messages = [], isLoading } = useQuery<Message[]>({
     queryKey: [`/api/chats/${chatId}/messages`],
   });
-  
+
   // Funzione per copiare il messaggio negli appunti
   const copyToClipboard = (content: string) => {
     navigator.clipboard.writeText(content).then(
@@ -43,14 +43,14 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
       }
     );
   };
-  
+
   // Inizia modifica messaggio
   const handleEditStart = (message: Message) => {
     setEditingMessage(message);
     setEditedContent(message.content);
     setIsEditDialogOpen(true);
   };
-  
+
   // Simula la salvataggio del messaggio modificato (in una app reale, sarà necessario un endpoint API)
   const handleSaveEdit = () => {
     if (editingMessage && editedContent.trim()) {
@@ -62,11 +62,11 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
             ? { ...msg, content: editedContent } 
             : msg
         );
-        
+
         // Aggiorniamo manualmente la cache di React Query
         queryClient.setQueryData([`/api/chats/${chatId}/messages`], updatedMessages);
       }
-      
+
       toast({
         title: "Modifica salvata",
         description: "Il messaggio è stato modificato con successo"
@@ -74,7 +74,7 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
       setIsEditDialogOpen(false);
     }
   };
-  
+
   if (isLoading) {
     return (
       <div className="flex-1 overflow-y-auto px-4 py-6 md:px-8">
@@ -92,7 +92,7 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
       </div>
     );
   }
-  
+
   return (
     <div className="flex-1 overflow-y-auto px-4 py-6 md:px-8">
       <div className="max-w-3xl mx-auto">
@@ -129,7 +129,7 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
                   {message.content}
                 </p>
               </div>
-              
+
               {/* Pulsanti di azione per il messaggio */}
               <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex space-x-1">
                 <Button
@@ -154,7 +154,7 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
             </div>
           ))
         )}
-        
+
         {messages.length === 0 && (
           <div className="relative flex items-start mb-6 p-3 rounded-xl bg-[#101c38] border border-primary/30 shadow-md hover:shadow-lg hover:border-primary/40 transition-all duration-300 group">
             <div className="flex-shrink-0 mr-4 w-8 h-8 rounded-full bg-primary/30 flex items-center justify-center text-sm text-primary self-start mt-0.5">
@@ -169,7 +169,7 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
                 scrivere contenuti o risolvere problemi.
               </p>
             </div>
-            
+
             {/* Pulsanti di azione per il messaggio */}
             <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex space-x-1">
               <Button
@@ -204,7 +204,7 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
           </div>
         )}
       </div>
-      
+
       {/* Dialog per modificare un messaggio */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="bg-sidebar border-primary/30 text-white">
