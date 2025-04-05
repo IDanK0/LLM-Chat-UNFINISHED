@@ -17,6 +17,8 @@ export async function generateAIResponse(userMessage: string): Promise<string> {
         model: 'meta-llama-3.1-8b-instruct',
         messages: [
           { role: 'system', content: 'you are an AI assistant.' },
+          { role: 'user', content: "Ciao!" },
+          { role: 'assistant', content: "Ciao! Come posso aiutarti oggi?" },
           { role: 'user', content: userMessage }
         ],
         temperature: 0.7,
