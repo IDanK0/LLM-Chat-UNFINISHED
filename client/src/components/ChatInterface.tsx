@@ -19,19 +19,10 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
   const [editedContent, setEditedContent] = useState("");
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const { toast } = useToast();
-  const [userMessage, setUserMessage] = useState(""); // New state for user message
-  const [messagesToDisplay, setMessagesToDisplay] = useState<Message[]>([]); // State to manage displayed messages
 
   const { data: messages = [], isLoading } = useQuery<Message[]>({
     queryKey: [`/api/chats/${chatId}/messages`],
-    onSuccess: (data) => {
-      setMessagesToDisplay(data);
-    }
   });
-
-  const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
-  const allMessages = [...messages, ...optimisticMessages];
-
 
   // Funzione per copiare il messaggio negli appunti
   const copyToClipboard = (content: string) => {
@@ -66,15 +57,14 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
       // In una app reale, qui chiameremmo un'API per aggiornare il messaggio
       // Qui simuliamo l'aggiornamento aggiornando la cache locale
       if (editingMessage && messages) {
-        const updatedMessages = messages.map(msg =>
-          msg.id === editingMessage.id
-            ? { ...msg, content: editedContent }
+        const updatedMessages = messages.map(msg => 
+          msg.id === editingMessage.id 
+            ? { ...msg, content: editedContent } 
             : msg
         );
 
         // Aggiorniamo manualmente la cache di React Query
         queryClient.setQueryData([`/api/chats/${chatId}/messages`], updatedMessages);
-        setMessagesToDisplay(updatedMessages); // Update displayed messages
       }
 
       toast({
@@ -84,19 +74,6 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
       setIsEditDialogOpen(false);
     }
   };
-
-  const sendMessageMutation = useMutation({
-    mutationKey: ['sendMessage'],
-    mutationFn: async (message: string) => {
-      //In a real app, send message to API here.
-      return {id: Date.now(), chatId: chatId, content: message, isUserMessage: true, createdAt: new Date().toISOString()};
-    },
-    onSuccess: (data) => {
-      setMessagesToDisplay([...messagesToDisplay, data]);
-      setUserMessage(""); // Clear user input
-    }
-  });
-
 
   if (isLoading) {
     return (
@@ -119,72 +96,66 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
   return (
     <div className="flex-1 overflow-y-auto px-4 py-6 md:px-8">
       <div className="max-w-3xl mx-auto">
-        {messagesToDisplay.map((message) => (
-          <div
-            key={message.id}
-            className={cn(
-              "relative flex items-start mb-6 p-3 rounded-xl transition-all duration-300 group",
-              message.isUserMessage
-                ? "hover:bg-primary/5"
-                : "bg-[#101c38] border border-primary/30 shadow-md hover:shadow-lg hover:border-primary/40"
-            )}
-          >
-            <div className={cn(
-              "flex-shrink-0 mr-4 w-8 h-8 rounded-full flex items-center justify-center text-sm self-start mt-0.5",
-              message.isUserMessage
-                ? "bg-blue-500/20 text-blue-500"
-                : "bg-primary/30 text-primary"
-            )}>
-              {message.isUserMessage ? "Tu" : "AI"}
-            </div>
-            <div className="flex-1 flex items-center">
-              <p className={cn(
-                "text-foreground leading-relaxed py-1 break-all whitespace-pre-wrap",
-                message.isUserMessage ? "text-white/90" : "text-white"
+        {messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full py-8">
+            <p className="text-muted-foreground text-center">
+              Non ci sono messaggi. Inizia una conversazione!
+            </p>
+          </div>
+        ) : (
+          messages.map((message) => (
+            <div
+              key={message.id}
+              className={cn(
+                "relative flex items-start mb-6 p-3 rounded-xl transition-all duration-300 group",
+                message.isUserMessage 
+                  ? "hover:bg-primary/5" 
+                  : "bg-[#101c38] border border-primary/30 shadow-md hover:shadow-lg hover:border-primary/40"
+              )}
+            >
+              <div className={cn(
+                "flex-shrink-0 mr-4 w-8 h-8 rounded-full flex items-center justify-center text-sm self-start mt-0.5",
+                message.isUserMessage 
+                  ? "bg-blue-500/20 text-blue-500" 
+                  : "bg-primary/30 text-primary"
               )}>
-                {message.content}
-              </p>
-            </div>
+                {message.isUserMessage ? "Tu" : "AI"}
+              </div>
+              <div className="flex-1 flex items-center">
+                <p className={cn(
+                  "text-foreground leading-relaxed py-1 break-all whitespace-pre-wrap",
+                  message.isUserMessage ? "text-white/90" : "text-white"
+                )}>
+                  {message.content}
+                </p>
+              </div>
 
-            {/* Pulsanti di azione per il messaggio */}
-            <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex space-x-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 rounded-full hover:bg-primary/20"
-                onClick={() => handleEditStart(message)}
-                title="Modifica messaggio"
-              >
-                <PencilIcon className="h-3.5 w-3.5 text-primary" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 rounded-full hover:bg-primary/20"
-                onClick={() => copyToClipboard(message.content)}
-                title="Copia messaggio"
-              >
-                <CopyIcon className="h-3.5 w-3.5 text-primary" />
-              </Button>
+              {/* Pulsanti di azione per il messaggio */}
+              <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex space-x-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 rounded-full hover:bg-primary/20"
+                  onClick={() => handleEditStart(message)}
+                  title="Modifica messaggio"
+                >
+                  <PencilIcon className="h-3.5 w-3.5 text-primary" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 rounded-full hover:bg-primary/20"
+                  onClick={() => copyToClipboard(message.content)}
+                  title="Copia messaggio"
+                >
+                  <CopyIcon className="h-3.5 w-3.5 text-primary" />
+                </Button>
+              </div>
             </div>
-          </div>
-        ))}
-        {/* Display the user's message before the API response */}
-        {userMessage && (
-          <div className="relative flex items-start mb-6 p-3 rounded-xl transition-all duration-300 group hover:bg-primary/5">
-            <div className="flex-shrink-0 mr-4 w-8 h-8 rounded-full flex items-center justify-center text-sm self-start mt-0.5 bg-blue-500/20 text-blue-500">
-              Tu
-            </div>
-            <div className="flex-1 flex items-center">
-              <p className="text-white/90 leading-relaxed py-1 break-all whitespace-pre-wrap">
-                {userMessage}
-              </p>
-            </div>
-          </div>
+          ))
         )}
 
-
-        {messagesToDisplay.length === 0 && (
+        {messages.length === 0 && (
           <div className="relative flex items-start mb-6 p-3 rounded-xl bg-[#101c38] border border-primary/30 shadow-md hover:shadow-lg hover:border-primary/40 transition-all duration-300 group">
             <div className="flex-shrink-0 mr-4 w-8 h-8 rounded-full bg-primary/30 flex items-center justify-center text-sm text-primary self-start mt-0.5">
               AI
@@ -213,7 +184,7 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
                     isUserMessage: false,
                     createdAt: new Date().toISOString()
                   });
-                  setEditedContent("Buon pomeriggio, como posso essere utile oggi?\n\nPuoi chiedermi qualsiasi cosa in italiano. Sono qui per aiutarti a trovare informazioni, scrivere contenuti o risolvere problemi.");
+                  setEditedContent("Buon pomeriggio, come posso essere utile oggi?\n\nPuoi chiedermi qualsiasi cosa in italiano. Sono qui per aiutarti a trovare informazioni, scrivere contenuti o risolvere problemi.");
                   setIsEditDialogOpen(true);
                 }}
                 title="Modifica messaggio"
@@ -246,14 +217,14 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
             className="min-h-[100px] mt-2 bg-white/10 border-primary/30 text-white textarea-glow"
           />
           <DialogFooter className="mt-4">
-            <Button
-              variant="outline"
+            <Button 
+              variant="outline" 
               onClick={() => setIsEditDialogOpen(false)}
               className="border-primary/30 text-white hover:bg-primary/20"
             >
               Annulla
             </Button>
-            <Button
+            <Button 
               onClick={handleSaveEdit}
               disabled={!editedContent.trim()}
               className="bg-primary hover:bg-primary/90"
