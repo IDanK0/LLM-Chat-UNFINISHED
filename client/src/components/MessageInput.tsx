@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { 
   ImageIcon, 
   Code2Icon, 
-  PianoIcon, 
   NotebookTextIcon, 
   GlobeIcon, 
   ImagePlusIcon,
@@ -102,7 +101,7 @@ export default function MessageInput({ chatId }: MessageInputProps) {
           </div>
         </form>
 
-        <div className="flex flex-wrap gap-2 mt-4">
+        <div className="flex flex-wrap gap-2 mt-4 justify-center">
           <Button 
             variant="outline" 
             className="bg-[#101c38] hover:bg-primary/20 border-primary/20 text-sm h-9 rounded-xl transition-all duration-300 transform hover:scale-105"
@@ -124,13 +123,16 @@ export default function MessageInput({ chatId }: MessageInputProps) {
             className="bg-[#101c38] hover:bg-primary/20 border-primary/20 text-sm h-9 rounded-xl transition-all duration-300 transform hover:scale-105"
             onClick={() => setMessage("Aiutami a creare un piano di studio per imparare il machine learning in 3 mesi.")}
           >
-            <PianoIcon className="h-4 w-4 mr-2 text-primary" />
+            <FileIcon className="h-4 w-4 mr-2 text-primary" />
             <span className="text-white/90">Fai un piano</span>
           </Button>
           <Button 
             variant="outline" 
             className="bg-[#101c38] hover:bg-primary/20 border-primary/20 text-sm h-9 rounded-xl transition-all duration-300 transform hover:scale-105"
-            onClick={() => setMessage("Quali sono gli sviluppi più recenti nell'intelligenza artificiale generativa?")}
+            onClick={() => {
+              setWebSearchEnabled(true);
+              setMessage("Quali sono gli sviluppi più recenti nell'intelligenza artificiale generativa?");
+            }}
           >
             <NotebookTextIcon className="h-4 w-4 mr-2 text-primary" />
             <span className="text-white/90">Notizie</span>
@@ -140,6 +142,7 @@ export default function MessageInput({ chatId }: MessageInputProps) {
             className="bg-[#101c38] hover:bg-primary/20 border-primary/20 text-sm h-9 rounded-xl transition-all duration-300 transform hover:scale-105"
             onClick={() => setMessage("Qual è la differenza tra machine learning e deep learning?")}
           >
+            <PlusIcon className="h-4 w-4 mr-2 text-primary" />
             <span className="text-white/90">Altro</span>
           </Button>
         </div>

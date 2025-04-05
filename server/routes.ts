@@ -59,6 +59,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to create chat" });
     }
   });
+  
+  // Update a chat
+  app.patch("/api/chats/:id", async (req: Request, res: Response) => {
+    try {
+      const chatId = parseInt(req.params.id);
+      const chat = await storage.getChat(chatId);
+      
+      if (!chat) {
+        return res.status(404).json({ message: "Chat not found" });
+      }
+      
+      const updatedChat = await storage.updateChat(chatId, req.body);
+      res.json(updatedChat);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update chat" });
+    }
+  });
+  
+  // Delete a chat
+  app.delete("/api/chats/:id", async (req: Request, res: Response) => {
+    try {
+      const chatId = parseInt(req.params.id);
+      const deleted = await storage.deleteChat(chatId);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Chat not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete chat" });
+    }
+  });
 
   // Get messages for a chat
   app.get("/api/chats/:id/messages", async (req: Request, res: Response) => {

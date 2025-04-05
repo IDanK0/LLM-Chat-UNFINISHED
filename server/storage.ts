@@ -12,6 +12,8 @@ export interface IStorage {
   getChats(userId: number): Promise<Chat[]>;
   getChat(id: number): Promise<Chat | undefined>;
   createChat(chat: InsertChat): Promise<Chat>;
+  updateChat(id: number, data: Partial<InsertChat>): Promise<Chat | undefined>;
+  deleteChat(id: number): Promise<boolean>;
   
   getMessages(chatId: number): Promise<Message[]>;
   createMessage(message: InsertMessage): Promise<Message>;
@@ -80,6 +82,39 @@ export class MemStorage implements IStorage {
     };
     this.chats.set(id, chat);
     return chat;
+  }
+  
+  async updateChat(id: number, data: Partial<InsertChat>): Promise<Chat | undefined> {
+    const chat = this.chats.get(id);
+    if (!chat) {
+      return undefined;
+    }
+    
+    const updatedChat: Chat = { 
+      ...chat, 
+      ...data 
+    };
+    this.chats.set(id, updatedChat);
+    return updatedChat;
+  }
+  
+  async deleteChat(id: number): Promise<boolean> {
+    // Delete the chat
+    const deleted = this.chats.delete(id);
+    
+    // Delete related messages
+    if (deleted) {
+      // Convert to array, then filter and delete
+      const messagesToDelete = Array.from(this.messages.entries())
+        .filter(([_, message]) => message.chatId === id)
+        .map(([id, _]) => id);
+      
+      messagesToDelete.forEach(messageId => {
+        this.messages.delete(messageId);
+      });
+    }
+    
+    return deleted;
   }
   
   async getMessages(chatId: number): Promise<Message[]> {
