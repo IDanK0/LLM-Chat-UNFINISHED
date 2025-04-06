@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -44,9 +44,10 @@ interface SidebarProps {
   isMobile: boolean;
   isOpen: boolean;
   onClose: () => void;
+  className?: string;
 }
 
-export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
+export default function Sidebar({ isMobile, isOpen, onClose, className }: SidebarProps) {
   const [location, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
@@ -215,9 +216,11 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
   });
   
   const sidebarClasses = cn(
-    "bg-sidebar w-64 flex-shrink-0 border-r border-border flex flex-col h-full transition-all duration-300",
+    "bg-sidebar border-r border-border flex flex-col h-full transition-all duration-300",
     isMobile && (isOpen ? "translate-x-0" : "-translate-x-full"),
-    "fixed md:relative z-40"
+    "fixed md:relative z-40",
+    !isMobile && "h-full",
+    className
   );
   
   return (
@@ -248,8 +251,6 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
             Nuova chat
           </Button>
           
-          {/* Rimosso il pulsante Impostazioni da qui */}
-          
           <div className="relative">
             <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -263,7 +264,7 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
         </div>
       
         <div className="flex flex-col overflow-y-auto flex-1">
-          <div className="p-4 border-t border-b border-border text-xs font-medium text-muted-foreground">
+          <div className="p-4 border-t border-b border-border text-xs font-medium text-muted-foreground text-center">
             Tutte le chat
           </div>
           
@@ -374,7 +375,6 @@ export default function Sidebar({ isMobile, isOpen, onClose }: SidebarProps) {
           </div>
         </div>
         
-        {/* Aggiungi il pulsante Impostazioni qui in fondo */}
         <div className="p-4 border-t border-border mt-auto">
           <Button 
             variant="outline" 
