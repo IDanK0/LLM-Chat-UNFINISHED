@@ -12,7 +12,7 @@ interface ApiRequestSettings {
   apiUrl?: string;
   temperature?: number;
   maxTokens?: number;
-  stream?: boolean;
+  stream?: boolean; // Mantenuto per compatibilità ma non verrà utilizzato
 }
 
 // Mappa per convertire i nomi dei modelli visualizzati nell'UI ai nomi tecnici per l'API
@@ -21,25 +21,36 @@ const MODEL_NAME_MAP: Record<string, string> = {
   "Gemma 3 12b it Instruct": "gemma-3-12b-it"
 };
   
-// Converte i messaggi dal formato DB al formato API
+// Converti i messaggi dal formato DB al formato API - Ottimizzato
 function convertMessagesToLlamaFormat(messages: Message[]): LlamaMessage[] {
-  // Aggiungi un messaggio di sistema all'inizio
+  // Data corrente formattata per il messaggio di sistema
+  const formattedDate = new Date().toLocaleDateString('it-IT', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+  // Costruisci il messaggio di sistema una volta sola
   const systemMessage: LlamaMessage = {
     role: 'system',
-    content: 'Sei un assistente AI italiano utile, preciso e amichevole. Oggi è ' + 
-             new Date().toLocaleDateString('it-IT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) +
-             '. Rispondi in modo accurato e naturale.'
+    content: `Sei un assistente AI italiano utile, preciso e amichevole. Oggi è ${formattedDate}. Rispondi in modo accurato e naturale.`
   };
-  // Converti i messaggi dal database al formato richiesto dall'API
-  const conversationMessages = messages.map(msg => ({
-    role: msg.isUserMessage ? 'user' : 'assistant' as 'system' | 'user' | 'assistant',
-    content: msg.content
-  }));
   
-  // Aggiungi il messaggio di sistema all'inizio dell'array
-  return [systemMessage, ...conversationMessages];
-}
+  // Pre-allocare l'array di output con la dimensione corretta migliora le prestazioni
+  const result: LlamaMessage[] = new Array(messages.length + 1);
+  result[0] = systemMessage;
+  
+  // Mappa ottimizzata dei messaggi
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i];
+    result[i + 1] = {
+      role: msg.isUserMessage ? 'user' : 'assistant',
+      content: msg.content
+    };
+  }
 
+  return result;
+}
 export async function generateAIResponse(
   messages: Message[], 
   modelName = "Llama 3.1 8b Instruct",
@@ -56,9 +67,14 @@ export async function generateAIResponse(
     const apiUrl = settings?.apiUrl || 'https://6f7d-2001-b07-5d38-71ae-b374-ce7b-cce3-f552.ngrok-free.app/v1/chat/completions';
     
     console.log(`Sending request to API with model: ${apiModelName}`);
-    console.log('Messages:', JSON.stringify(formattedMessages, null, 2));
-    console.log('API Settings:', JSON.stringify(settings, null, 2));
     
+    // Implementazione di cache per richieste ripetute
+    const cacheKey = JSON.stringify({ messages: formattedMessages, model: apiModelName });
+    const cachedResponse = responseCache.get(cacheKey);
+    if (cachedResponse) {
+      console.log("Cache hit, returning cached response");
+      return cachedResponse;
+    }
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
@@ -69,14 +85,49 @@ export async function generateAIResponse(
         messages: formattedMessages,
         temperature: settings?.temperature ?? 0.7,
         max_tokens: settings?.maxTokens ?? -1,
-        stream: settings?.stream ?? false
+        stream: false  // Forzato sempre a false indipendentemente dalle impostazioni utente
       })
     });
 
     const data = await response.json();
-    return data.choices[0].message.content;
+    const content = data.choices[0].message.content;
+    
+    // Memorizza nella cache
+    responseCache.set(cacheKey, content);
+    
+    return content;
   } catch (error) {
     console.error('Error generating AI response:', error);
     return 'Mi dispiace, ma al momento non riesco a generare una risposta. Riprova più tardi.';
   }
 }
+
+// Implementazione di una cache semplice per migliorare le prestazioni
+class SimpleCache {
+  private cache: Map<string, string>;
+  private maxSize: number;
+  
+  constructor(maxSize = 100) {
+    this.cache = new Map();
+    this.maxSize = maxSize;
+  }
+  
+  get(key: string): string | undefined {
+    return this.cache.get(key);
+  }
+  
+  set(key: string, value: string): void {
+    // Se la cache è piena, rimuovi la voce più vecchia
+    if (this.cache.size >= this.maxSize) {
+      const oldestKey = this.cache.keys().next().value;
+      this.cache.delete(oldestKey);
+    }
+    this.cache.set(key, value);
+  }
+  
+  clear(): void {
+    this.cache.clear();
+  }
+}
+
+const responseCache = new SimpleCache();

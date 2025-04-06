@@ -1,13 +1,6 @@
 import { useState } from "react";
 import { ApiSettings, getSettings, saveSettings, resetSettings } from "@/lib/settingsStore";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -187,12 +180,14 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
             </p>
           </div>
           
-          {/* Streaming */}
-          <div className="flex items-center justify-between">
+          {/* Streaming e Animazione */}
+          <div className="space-y-6">
+            {/* Streaming toggle */}
+            <div className="flex items-center justify-between">
             <div>
               <Label htmlFor="stream" className="text-white">Streaming</Label>
               <p className="text-xs text-muted-foreground">
-                Attiva per ricevere la risposta in tempo reale.
+                  Attiva per visualizzare le risposte con animazione.
               </p>
             </div>
             <Switch
@@ -201,6 +196,35 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
               onCheckedChange={(checked) => updateSettings("stream", checked)}
               className="data-[state=checked]:bg-primary"
             />
+          </div>
+            
+            {/* Velocità animazione (visibile solo se lo streaming è attivo) */}
+            {settings.stream && (
+              <div className="space-y-2 pl-4 border-l-2 border-primary/30 mt-2">
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="animationSpeed" className="text-white">Velocità animazione</Label>
+                  <span className="text-primary text-sm font-medium bg-primary/20 px-2 py-1 rounded-md">
+                    {settings.animationSpeed || 15} parole/s
+                  </span>
+        </div>
+        
+                <div className="py-2">
+                  <Slider
+                    id="animationSpeed"
+                    min={5}
+                    max={30}
+                    step={1}
+                    value={[settings.animationSpeed || 15]}
+                    onValueChange={(values) => updateSettings("animationSpeed", values[0])}
+                    className="custom-slider"
+                  />
+                </div>
+                
+                <p className="text-xs text-muted-foreground">
+                  Regola la velocità con cui appaiono le parole nell'animazione.
+                </p>
+              </div>
+            )}
           </div>
         </div>
         
