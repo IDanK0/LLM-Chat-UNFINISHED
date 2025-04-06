@@ -180,24 +180,40 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
             </p>
           </div>
           
+          {/* Titolo automatico */}
+          <div className="flex items-center justify-between">
+            <div>
+              <Label htmlFor="autoGenerateTitle" className="text-white">Generazione automatica titoli</Label>
+              <p className="text-xs text-muted-foreground">
+                Genera automaticamente titoli per le chat in base al contenuto della conversazione.
+              </p>
+            </div>
+            <Switch
+              id="autoGenerateTitle"
+              checked={settings.autoGenerateTitle}
+              onCheckedChange={(checked) => updateSettings("autoGenerateTitle", checked)}
+              className="data-[state=checked]:bg-primary"
+            />
+          </div>
+            
           {/* Streaming e Animazione */}
           <div className="space-y-6">
             {/* Streaming toggle */}
             <div className="flex items-center justify-between">
             <div>
               <Label htmlFor="stream" className="text-white">Streaming</Label>
-              <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   Attiva per visualizzare le risposte con animazione.
-              </p>
-            </div>
+                </p>
+              </div>
             <Switch
               id="stream"
               checked={settings.stream}
               onCheckedChange={(checked) => updateSettings("stream", checked)}
               className="data-[state=checked]:bg-primary"
             />
-          </div>
-            
+        </div>
+        
             {/* Velocità animazione (visibile solo se lo streaming è attivo) */}
             {settings.stream && (
               <div className="space-y-2 pl-4 border-l-2 border-primary/30 mt-2">

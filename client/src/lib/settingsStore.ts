@@ -4,6 +4,7 @@ export interface ApiSettings {
   maxTokens: number;
   stream: boolean;
   animationSpeed: number; // Nuova impostazione per la velocità dell'animazione (parole al secondo)
+  autoGenerateTitle: boolean; // Nuova impostazione per la generazione automatica dei titoli
 }
 
 const DEFAULT_SETTINGS: ApiSettings = {
@@ -11,7 +12,8 @@ const DEFAULT_SETTINGS: ApiSettings = {
   temperature: 0.7,
   maxTokens: -1,
   stream: true,
-  animationSpeed: 15  // Default: 15 parole al secondo
+  animationSpeed: 15,  // Default: 15 parole al secondo
+  autoGenerateTitle: true // Default: attivato
 };
 
 export function getSettings(): ApiSettings {

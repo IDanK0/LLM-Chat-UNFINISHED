@@ -136,6 +136,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Endpoint per generare titoli per le chat usando l'AI
+  app.post("/api/generate-title", async (req, res) => {
+    try {
+      const { context, prompt } = req.body;
+      
+      // Usa l'API di AI per generare un titolo basato sul contesto della conversazione
+      const response = await generateAIResponse([
+        {
+          id: 0,
+          chatId: 0,
+          content: `${prompt}\n\nContesto della conversazione:\n${context}`,
+          isUserMessage: true,
+          createdAt: new Date().toISOString()
+}
+      ]);
+      
+      // Estrai il titolo generato dall'AI
+      let title = response.trim();
+      
+      // Limita la lunghezza del titolo se necessario
+      if (title.length > 50) {
+        title = title.substring(0, 47) + "...";
+      }
+      
+      res.json({ title });
+    } catch (error) {
+      console.error("Errore nella generazione del titolo:", error);
+      res.status(500).json({ error: "Impossibile generare il titolo" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
