@@ -22,42 +22,41 @@ export default function Chat() {
   const isMobile = useIsMobile();
   const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
   const [, params] = useRoute<{ id: string }>("/chat/:id");
-  const [, setLocation] = useLocation(); // Aggiunto per la navigazione
-  const chatId = params ? params.id : ""; // Modificato: rimosso parseInt
+  const [, setLocation] = useLocation();
+  const chatId = params ? params.id : "";
   const [selectedModel, setSelectedModel] = useState("Llama 3.1 8b Instruct");
   
   // Fetch chat data
   const { data: chat, isLoading: isLoadingChat, isError: isChatError } = useQuery<ChatType>({
     queryKey: [`/api/chats/${chatId}`],
     enabled: !!chatId,
-    retry: false, // Non riprovare se la query fallisce (chat non trovata)
+    retry: false,
   });
   
   // Fetch chat messages
   const { data: messages = [], isLoading: isLoadingMessages } = useQuery<Message[]>({
     queryKey: [`/api/chats/${chatId}/messages`],
-    enabled: !!chatId && !!chat, // Carica i messaggi solo se la chat esiste
+    enabled: !!chatId && !!chat,
   });
   
   // Delete chat mutation
   const deleteChatMutation = useMutation({
-    mutationFn: async (id: string) => { // Modificato: da number a string
+    mutationFn: async (id: string) => {
       return apiRequest('DELETE', `/api/chats/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/chats'] });
-      setLocation('/'); // Reindirizza alla home dopo l'eliminazione
+      setLocation('/');
     },
   });
 
   // Verifica se la chat è vuota e in tal caso la elimina
   useEffect(() => {
     if (!isLoadingMessages && !isLoadingChat && chatId && messages && messages.length === 0 && chat) {
-      // Se la chat esiste ma non ha messaggi (nemmeno il messaggio iniziale del sistema)
       console.log("Chat vuota rilevata. Eliminazione in corso...");
       deleteChatMutation.mutate(chatId);
     }
-  }, [chatId, messages, isLoadingMessages, isLoadingChat, chat]);
+  }, [chatId, messages, isLoadingMessages, isLoadingChat, chat, deleteChatMutation]);
   
   // Reindirizza alla home se la chat non esiste (errore nella query o chat non trovata)
   useEffect(() => {
@@ -75,7 +74,7 @@ export default function Chat() {
   }, [chatId, isMobile]);
   
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-background app-container">
       <Sidebar 
         isMobile={isMobile} 
         isOpen={isSidebarOpen} 
@@ -83,7 +82,7 @@ export default function Chat() {
       />
       
       <main className="flex-1 flex flex-col h-full overflow-hidden">
-        <header className="border-b border-border py-2 px-4 flex items-center justify-between bg-background">
+        <header className="border-b border-border py-2 px-2 flex items-center justify-between bg-background">
           <div className="flex items-center space-x-2">
             {isMobile && (
               <Button 
@@ -143,8 +142,10 @@ export default function Chat() {
           </div>
         ) : (
           <>
-            <ChatInterface chatId={chatId} />
-            <MessageInput chatId={chatId} selectedModel={selectedModel} />
+            <div className="mobile-chat-container flex-1 flex flex-col overflow-hidden">
+              <ChatInterface chatId={chatId} />
+              <MessageInput chatId={chatId} selectedModel={selectedModel} />
+            </div>
           </>
         )}
       </main>

@@ -10,7 +10,6 @@ import { queryClient } from "@/lib/queryClient";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import AnimatedText from "./AnimatedText";
-import { getSettings } from "@/lib/settingsStore";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ChatInterfaceProps {
@@ -77,6 +76,7 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
         description: "Il messaggio è stato eliminato con successo"
       });
       setIsDeleteDialogOpen(false);
+      setMessageToDelete(null);
     }
   };
 
@@ -101,16 +101,20 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
         description: "Il messaggio è stato modificato con successo"
       });
       setIsEditDialogOpen(false);
+      setEditingMessage(null);
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex-1 overflow-y-auto px-2 py-2 md:px-8">
+      <div className={cn(
+        "flex-1 overflow-y-auto px-4 py-4",
+        isMobile && "p-1 chat-interface"
+      )}>
         <div className="max-w-3xl mx-auto space-y-4">
           {[1, 2].map((i) => (
-            <div key={i} className="flex items-start mb-4">
-              <Skeleton className="h-8 w-8 rounded-full mr-2" />
+            <div key={i} className={cn("flex items-start mb-4", isMobile && "mb-2")}>
+              <Skeleton className={cn("h-8 w-8 rounded-full mr-2", isMobile && "h-7 w-7")} />
               <div className="space-y-1">
                 <Skeleton className="h-4 w-[250px]" />
                 <Skeleton className="h-4 w-[400px]" />
@@ -123,33 +127,38 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-2 py-2 md:px-8 chat-interface">
+    <div className={cn(
+      "flex-1 overflow-y-auto px-4 py-4",
+      isMobile && "p-1 chat-interface"
+    )}>
       <div className="max-w-3xl mx-auto">
         {/* Mostra i messaggi della chat se ce ne sono */}
         {messages.length > 0 && messages.map((message) => (
           <div
             key={message.id}
             className={cn(
-              "relative flex flex-col md:flex-row items-start mb-3 p-2 rounded-xl transition-all duration-300 group",
+              "relative flex flex-col md:flex-row items-start mb-6 p-3 rounded-xl transition-all duration-300 group",
               message.isUserMessage 
                 ? "hover:bg-primary/5" 
-                : "bg-[#101c38] border border-primary/30 shadow-md hover:shadow-lg hover:border-primary/40"
+                : "bg-[#101c38] border border-primary/30 shadow-md hover:shadow-lg hover:border-primary/40",
+              isMobile && "mb-2 p-2"
             )}
           >
             <div className={cn(
-              "flex-shrink-0 mr-2 w-7 h-7 rounded-full flex items-center justify-center text-sm self-start mt-0.5",
+              "flex-shrink-0 mr-2 w-7 h-7 rounded-full flex items-center justify-center text-sm self-start mt-0.5 chat-message-avatar",
               message.isUserMessage 
                 ? "bg-blue-500/20 text-blue-500" 
-                : "bg-primary/30 text-primary"
+                : "bg-primary/30 text-primary",
+              isMobile && "w-6 h-6"
             )}>
               {message.isUserMessage ? "Tu" : "AI"}
             </div>
             <div className="flex-1 flex items-center">
               {message.isUserMessage ? (
                 <p className={cn(
-                  "text-foreground leading-relaxed py-1 break-all whitespace-pre-wrap",
+                  "text-foreground leading-relaxed py-1 break-words whitespace-pre-wrap",
                   "text-white/90",
-                  isMobile ? "text-sm" : ""
+                  isMobile && "mobile-text"
                 )}>
                   {message.content}
                 </p>
@@ -157,14 +166,14 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
                 <AnimatedText
                   text={message.content}
                   className={cn(
-                    "text-foreground leading-relaxed py-1 break-all whitespace-pre-wrap",
+                    "text-foreground leading-relaxed py-1 break-words whitespace-pre-wrap",
                     "text-white",
-                    isMobile ? "text-sm" : ""
+                    isMobile && "mobile-text"
                   )}
                 />
               )}
             </div>
-            {/* Pulsanti di azione per il messaggio - riordinati e ottimizzati per mobile */}
+            {/* Pulsanti di azione per il messaggio - diversi per mobile e desktop */}
             <div className={cn(
               isMobile 
                 ? "message-actions flex justify-end space-x-1" 
@@ -172,30 +181,39 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
             )}>
               <Button
                 variant="ghost"
-                size={isMobile ? "sm" : "icon"}
-                className={isMobile ? "h-8 w-8 rounded-full bg-primary/10" : "h-7 w-7 rounded-full hover:bg-primary/20"}
+                size="icon"
+                className={cn(
+                  "h-7 w-7 rounded-full hover:bg-primary/20",
+                  isMobile && "h-7 w-7 rounded-full bg-primary/10"
+                )}
                 onClick={() => copyToClipboard(message.content)}
                 title="Copia messaggio"
               >
-                <CopyIcon className={cn("text-primary", isMobile ? "h-3.5 w-3.5" : "h-3.5 w-3.5")} />
+                <CopyIcon className={cn("h-3.5 w-3.5 text-primary", isMobile && "h-3 w-3")} />
               </Button>
               <Button
                 variant="ghost"
-                size={isMobile ? "sm" : "icon"}
-                className={isMobile ? "h-8 w-8 rounded-full bg-primary/10" : "h-7 w-7 rounded-full hover:bg-primary/20"}
+                size="icon"
+                className={cn(
+                  "h-7 w-7 rounded-full hover:bg-primary/20",
+                  isMobile && "h-7 w-7 rounded-full bg-primary/10"
+                )}
                 onClick={() => handleEditStart(message)}
                 title="Modifica messaggio"
               >
-                <PencilIcon className={cn("text-primary", isMobile ? "h-3.5 w-3.5" : "h-3.5 w-3.5")} />
+                <PencilIcon className={cn("h-3.5 w-3.5 text-primary", isMobile && "h-3 w-3")} />
               </Button>
               <Button
                 variant="ghost"
-                size={isMobile ? "sm" : "icon"}
-                className={isMobile ? "h-8 w-8 rounded-full bg-primary/10" : "h-7 w-7 rounded-full hover:bg-primary/20"}
+                size="icon"
+                className={cn(
+                  "h-7 w-7 rounded-full hover:bg-primary/20",
+                  isMobile && "h-7 w-7 rounded-full bg-primary/10"
+                )}
                 onClick={() => handleDeleteStart(message)}
                 title="Elimina messaggio"
               >
-                <Trash2Icon className={cn("text-primary", isMobile ? "h-3.5 w-3.5" : "h-3.5 w-3.5")} />
+                <Trash2Icon className={cn("h-3.5 w-3.5 text-primary", isMobile && "h-3 w-3")} />
               </Button>
             </div>
           </div>
@@ -203,7 +221,10 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
       </div>
       {/* Dialog per modificare un messaggio - ottimizzato per mobile */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="bg-sidebar border-primary/30 text-white max-w-[95vw] md:max-w-md">
+        <DialogContent className={cn(
+          "bg-sidebar border-primary/30 text-white",
+          isMobile ? "max-w-[95vw]" : "max-w-md"
+        )}>
           <DialogHeader>
             <DialogTitle>Modifica messaggio</DialogTitle>
           </DialogHeader>
@@ -212,18 +233,27 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
             onChange={(e) => setEditedContent(e.target.value)}
             className="min-h-[100px] mt-2 bg-white/10 border-primary/30 text-white textarea-glow"
           />
-          <DialogFooter className={cn("mt-4", isMobile && "flex-col space-y-2")}>
+          <DialogFooter className={cn(
+            "mt-4",
+            isMobile && "dialog-footer flex-col space-y-2"
+          )}>
             <Button 
               variant="outline" 
               onClick={() => setIsEditDialogOpen(false)}
-              className={cn("border-primary/30 text-white hover:bg-primary/20", isMobile && "w-full")}
+              className={cn(
+                "border-primary/30 text-white hover:bg-primary/20",
+                isMobile && "w-full"
+              )}
             >
               Annulla
             </Button>
             <Button 
               onClick={handleSaveEdit}
               disabled={!editedContent.trim()}
-              className={cn("bg-primary hover:bg-primary/90", isMobile && "w-full")}
+              className={cn(
+                "bg-primary hover:bg-primary/90",
+                isMobile && "w-full"
+              )}
             >
               Salva
             </Button>
@@ -233,23 +263,35 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
 
       {/* Dialog per confermare l'eliminazione di un messaggio - ottimizzato per mobile */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="bg-sidebar border-primary/30 text-white max-w-[95vw] md:max-w-md">
+        <DialogContent className={cn(
+          "bg-sidebar border-primary/30 text-white",
+          isMobile ? "max-w-[95vw]" : "max-w-md"
+        )}>
           <DialogHeader>
             <DialogTitle>Conferma eliminazione</DialogTitle>
           </DialogHeader>
           <p className="mt-2 text-white/80">Sei sicuro di voler eliminare questo messaggio? Questa azione non può essere annullata.</p>
-          <DialogFooter className={cn("mt-4", isMobile && "flex-col space-y-2")}>
+          <DialogFooter className={cn(
+            "mt-4",
+            isMobile && "dialog-footer flex-col space-y-2"
+          )}>
             <Button 
               variant="outline" 
               onClick={() => setIsDeleteDialogOpen(false)}
-              className={cn("border-primary/30 text-white hover:bg-primary/20", isMobile && "w-full")}
+              className={cn(
+                "border-primary/30 text-white hover:bg-primary/20",
+                isMobile && "w-full"
+              )}
             >
               Annulla
             </Button>
             <Button 
               onClick={handleDeleteConfirm}
               variant="destructive"
-              className={cn("bg-red-500 hover:bg-red-600", isMobile && "w-full")}
+              className={cn(
+                "bg-red-500 hover:bg-red-600",
+                isMobile && "w-full"
+              )}
             >
               Elimina
             </Button>

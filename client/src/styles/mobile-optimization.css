@@ -1,94 +1,149 @@
-/* Stili per dispositivi mobili */
+/* Stili SOLO per dispositivi mobili */
 .mobile-device {
-  /* Disabilita comportamenti indesiderati su mobile */
+  /* Reset di base per dispositivi mobili */
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
-  /* Garantisce una dimensione minima leggibile */
   font-size: 16px;
 }
 
-/* Aumenta le dimensioni dei tocchi per elementi interattivi su dispositivi mobili */
-.mobile-device button,
-.mobile-device [role="button"],
-.mobile-device a {
-  min-height: 36px; /* Ridotto da 44px per risparmiare spazio */
-  min-width: 36px; /* Ridotto da 44px per risparmiare spazio */
+/* Fix layout principale SOLO per dispositivi mobili */
+.mobile-device main {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100dvh !important;
+  overflow: hidden !important;
 }
 
-/* Ottimizza gli spazi su mobile - riduzione padding */
-.mobile-device .p-4 {
-  padding: 0.5rem !important; /* Ridotto da 0.75rem */
+/* Fissa l'header su mobile */
+.mobile-device header {
+  flex-shrink: 0 !important;
+  padding: 0.5rem !important;
+  height: auto !important;
+  min-height: 40px !important;
+  z-index: 30 !important;
 }
 
-.mobile-device .space-y-8 > :not([hidden]) ~ :not([hidden]) {
-  --tw-space-y-reverse: 0;
-  margin-top: calc(1rem * calc(1 - var(--tw-space-y-reverse))) !important; /* Ridotto da 1.5rem */
-  margin-bottom: calc(1rem * var(--tw-space-y-reverse)) !important; /* Ridotto da 1.5rem */
+/* Parte centrale della chat - occupa tutto lo spazio disponibile su mobile */
+.mobile-device .chat-interface {
+  flex: 1 1 auto !important;
+  overflow-y: auto !important;
+  padding: 0.5rem !important;
+  max-height: none !important;
 }
 
-/* Ottimizza l'input dei messaggi su mobile - riduciamo il padding */
+/* Input messaggi - fisso in basso su mobile */
 .mobile-device .message-input-container {
+  flex-shrink: 0 !important;
+  position: sticky !important;
+  bottom: 0 !important;
+  background-color: #0f172a !important;
   padding: 0.5rem !important;
   padding-bottom: calc(env(safe-area-inset-bottom, 0.5rem) + 0.5rem) !important;
+  border-top: 1px solid rgba(59, 130, 246, 0.2) !important;
+  z-index: 20 !important;
 }
 
-/* Ottimizziamo le altezze degli elementi per evitare overflow su mobile */
-.mobile-device .chat-interface {
-  height: auto !important;
+/* Layout speciale per mobile */
+.mobile-device .mobile-chat-container {
+  display: flex !important;
+  flex-direction: column !important;
   flex: 1 !important;
-  overflow-y: auto !important;
-  /* Layout flessibile invece di altezze fisse */
+  overflow: hidden !important;
+  height: 0 !important; /* Trick per far funzionare flex con overflow su iOS */
 }
 
-/* Ottimizza i dialoghi su mobile */
-.mobile-device [role="dialog"] {
-  max-width: 95vw !important;
+/* Riduzione dimensioni elementi UI su mobile */
+.mobile-device button,
+.mobile-device [role="button"] {
+  min-height: 32px;
+  min-width: 32px;
 }
 
-/* Ottimizza i bottoni dei messaggi su mobile per essere più facili da toccare */
+/* Ottimizzazione spaziature su mobile */
+.mobile-device .p-4 {
+  padding: 0.5rem !important;
+}
+
+.mobile-device .mb-6 {
+  margin-bottom: 0.5rem !important;
+}
+
+.mobile-device .mb-4,
+.mobile-device .mb-3 {
+  margin-bottom: 0.5rem !important;
+}
+
+.mobile-device .py-2 {
+  padding-top: 0.25rem !important;
+  padding-bottom: 0.25rem !important;
+}
+
+/* Bottoni azioni messaggi su mobile */
 .mobile-device .message-actions {
   opacity: 1 !important;
   position: static !important;
   display: flex !important;
   justify-content: flex-end !important;
-  margin-top: 0.25rem !important; /* Ridotto da 0.5rem */
+  margin-top: 0.25rem !important;
 }
 
 .mobile-device .message-actions button {
-  height: 32px !important; /* Ridotto da 36px */
-  width: 32px !important; /* Ridotto da 36px */
+  height: 28px !important;
+  width: 28px !important;
+  padding: 0 !important;
 }
 
-/* Struttura del layout mobile ottimizzata */
-.mobile-device main {
-  display: flex !important;
-  flex-direction: column !important;
-  height: 100% !important;
+/* Dialoghi ottimizzati per mobile */
+.mobile-device [role="dialog"] {
+  max-width: 95vw !important;
 }
 
-.mobile-device header {
-  flex-shrink: 0 !important; 
-  padding-top: 0.5rem !important;
-  padding-bottom: 0.5rem !important;
-}
-
-.mobile-device .chat-interface {
-  flex: 1 1 auto !important;
-  min-height: 0 !important; /* Importante per il funzionamento del flexbox su Safari */
-}
-
-/* Ottimizziamo lo spazio dei messaggi */
-.mobile-device .chat-interface > div {
-  padding-top: 0.5rem !important;
-  padding-bottom: 0.5rem !important;
-}
-
-/* Riduciamo lo spazio tra i messaggi */
-.mobile-device .chat-interface .mb-6 {
-  margin-bottom: 0.75rem !important;
-}
-
-/* Ottimizziamo la barra dei suggerimenti */
-.mobile-device .message-input-container + div {
+/* Suggerimenti compatti su mobile */
+.mobile-device .suggestions-container {
   margin-top: 0.25rem !important;
+  flex-shrink: 0 !important;
+  margin-bottom: 0.5rem !important;
+}
+
+/* Dimensioni ridotte del testo per messaggi su mobile */
+.mobile-device .mobile-text {
+  font-size: 0.875rem !important;
+  line-height: 1.4 !important;
+}
+
+/* Riduzione padding nei messaggi su mobile */
+.mobile-device .p-3, 
+.mobile-device .p-2 {
+  padding: 0.5rem !important;
+}
+
+/* Textarea per input messaggi su mobile */
+.mobile-device .message-textarea {
+  min-height: 28px !important;
+  max-height: 80px !important;
+  padding-top: 0.25rem !important;
+  padding-bottom: 0.25rem !important;
+}
+
+/* Riduzione margini nei dialoghi su mobile */
+.mobile-device .dialog-footer {
+  margin-top: 0.5rem !important;
+}
+
+/* Assicura che le icone nei bottoni siano centrate su mobile */
+.mobile-device button svg {
+  margin: auto !important;
+}
+
+/* Riduce lo spazio tra avatar e testo nei messaggi su mobile */
+.mobile-device .chat-message-avatar {
+  margin-right: 0.5rem !important;
+  width: 1.5rem !important;
+  height: 1.5rem !important;
+}
+
+/* Ottimizza dropdown su mobile */
+.mobile-device .dropdown-content {
+  max-height: 40vh !important;
+  overflow-y: auto !important;
 }

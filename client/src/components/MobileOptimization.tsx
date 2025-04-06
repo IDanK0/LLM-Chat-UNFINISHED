@@ -6,10 +6,11 @@ export function MobileOptimization() {
 
   useEffect(() => {
     if (isMobile) {
-      // Aggiunge una classe al body quando visualizzato su dispositivo mobile
+      // Aggiunge classe solo su mobile
       document.body.classList.add('mobile-device');
+      document.documentElement.classList.add('mobile-device');
       
-      // Gestisce il viewport per dispositivi mobili
+      // Gestisce il viewport solo per dispositivi mobili
       const viewportMeta = document.querySelector('meta[name="viewport"]');
       if (viewportMeta) {
         viewportMeta.setAttribute(
@@ -23,46 +24,85 @@ export function MobileOptimization() {
         document.head.appendChild(meta);
       }
       
-      // Imposta la dimensione iniziale della visualizzazione
-      // Questa funzione verifica e adatta l'altezza dell'interfaccia di chat
-      const adjustChatInterface = () => {
+      // Funzione per sistemare il layout solo su mobile
+      const fixMobileLayout = () => {
+        // Rimuovi height: 100% e aggiungi height: 100vh
+        document.documentElement.style.height = '100vh';
+        document.body.style.height = '100vh';
+        
+        // Main container
+        const main = document.querySelector('main');
+        if (main) {
+          main.style.display = 'flex';
+          main.style.flexDirection = 'column';
+          main.style.height = '100%';
+          main.style.overflow = 'hidden';
+        }
+        
+        // Chat interface
         const chatInterface = document.querySelector('.chat-interface');
         if (chatInterface) {
-          // Calcola lo spazio disponibile in base agli altri elementi
-          const header = document.querySelector('header');
-          const messageInput = document.querySelector('.message-input-container');
-          const suggestionBar = messageInput?.nextElementSibling;
-          
-          let availableHeight = window.innerHeight;
-          
-          if (header) availableHeight -= header.clientHeight;
-          if (messageInput) availableHeight -= messageInput.clientHeight;
-          if (suggestionBar) availableHeight -= suggestionBar.clientHeight;
-          
-          // Assicura che ci sia sempre spazio minimo per l'interfaccia della chat
-          chatInterface.style.height = `${Math.max(availableHeight, 200)}px`;
+          chatInterface.classList.add('mobile-chat-interface');
+          (chatInterface as HTMLElement).style.flex = '1 1 auto';
+          (chatInterface as HTMLElement).style.overflowY = 'auto';
+          (chatInterface as HTMLElement).style.maxHeight = 'none';
+        }
+        
+        // Input container
+        const inputContainer = document.querySelector('.message-input-container');
+        if (inputContainer) {
+          (inputContainer as HTMLElement).style.position = 'sticky';
+          (inputContainer as HTMLElement).style.bottom = '0';
+          (inputContainer as HTMLElement).style.zIndex = '10';
+          (inputContainer as HTMLElement).style.background = '#0f172a';
+          (inputContainer as HTMLElement).style.flexShrink = '0';
+        }
+        
+        // Imposta overflow hidden sul body per evitare scroll indesiderati
+        document.body.style.overflow = 'hidden';
+        
+        // Aggiungi classe al contenitore chat+input se non presente
+        const mobileContainer = document.querySelector('.chat-interface')?.parentElement;
+        if (mobileContainer && !mobileContainer.classList.contains('mobile-chat-container')) {
+          mobileContainer.classList.add('mobile-chat-container');
         }
       };
       
-      // Esegue l'adattamento iniziale e ad ogni ridimensionamento
-      adjustChatInterface();
-      window.addEventListener('resize', adjustChatInterface);
+      // Esegui solo su mobile e quando il DOM cambia
+      fixMobileLayout();
+      window.addEventListener('resize', fixMobileLayout);
       
-      // Impedisce lo zoom del browser sui dispositivi iOS
-      document.addEventListener('touchmove', function(event) {
-        if (event.scale !== 1) { 
-          event.preventDefault(); 
+      // Observer per applicare i fix quando il DOM cambia (es: nuovi messaggi)
+      const observer = new MutationObserver(() => {
+        fixMobileLayout();
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+      
+      // Impedisci zoom su iOS
+      const preventZoom = (e: TouchEvent) => {
+        if ('scale' in e && e.scale !== 1) { 
+          e.preventDefault(); 
         }
-      }, { passive: false });
+      };
+      document.addEventListener('touchmove', preventZoom as any, { passive: false });
       
       return () => {
+        // Rimuovi tutto quando il componente viene smontato
         document.body.classList.remove('mobile-device');
-        window.removeEventListener('resize', adjustChatInterface);
+        document.documentElement.classList.remove('mobile-device');
+        window.removeEventListener('resize', fixMobileLayout);
+        document.removeEventListener('touchmove', preventZoom as any);
+        observer.disconnect();
+        document.body.style.overflow = '';
+        document.documentElement.style.height = '';
+        document.body.style.height = '';
       };
     } else {
+      // Su desktop, assicurati che non ci siano residui di stile mobile
       document.body.classList.remove('mobile-device');
+      document.documentElement.classList.remove('mobile-device');
       
-      // Ripristina il viewport standard se non è mobile
+      // Ripristina viewport per desktop
       const viewportMeta = document.querySelector('meta[name="viewport"]');
       if (viewportMeta) {
         viewportMeta.setAttribute(
