@@ -137,54 +137,61 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
           <div
             key={message.id}
             className={cn(
-              "relative flex flex-col md:flex-row items-start mb-6 p-3 rounded-xl transition-all duration-300 group",
+              "relative flex flex-col items-start mb-6 p-3 rounded-xl transition-all duration-300 group",
               message.isUserMessage 
                 ? "hover:bg-primary/5" 
                 : "bg-[#101c38] border border-primary/30 shadow-md hover:shadow-lg hover:border-primary/40",
-              isMobile && "mb-2 p-2"
+              isMobile && "mb-3 p-2.5"  // Aumentato leggermente il margine per migliorare la leggibilità
             )}
           >
-            <div className={cn(
-              "flex-shrink-0 mr-2 w-7 h-7 rounded-full flex items-center justify-center text-sm self-start mt-0.5 chat-message-avatar",
-              message.isUserMessage 
-                ? "bg-blue-500/20 text-blue-500" 
-                : "bg-primary/30 text-primary",
-              isMobile && "w-6 h-6"
-            )}>
-              {message.isUserMessage ? "Tu" : "AI"}
-            </div>
-            <div className="flex-1 flex items-center">
-              {message.isUserMessage ? (
-                <p className={cn(
-                  "text-foreground leading-relaxed py-1 break-words whitespace-pre-wrap",
-                  "text-white/90",
-                  isMobile && "mobile-text"
-                )}>
-                  {message.content}
-                </p>
-              ) : (
-                <AnimatedText
-                  text={message.content}
-                  className={cn(
+            <div className="flex w-full items-start">
+              {/* Avatar - Dimensioni ottimizzate */}
+              <div className={cn(
+                "flex-shrink-0 mr-2 rounded-full flex items-center justify-center text-sm self-start mt-0.5 chat-message-avatar",
+                message.isUserMessage 
+                  ? "bg-blue-500/20 text-blue-500" 
+                  : "bg-primary/30 text-primary",
+                isMobile ? "w-6 h-6 text-xs" : "w-7 h-7"
+              )}>
+                {message.isUserMessage ? "Tu" : "AI"}
+              </div>
+
+              {/* Contenuto del messaggio */}
+              <div className="flex-1 min-w-0">
+                {message.isUserMessage ? (
+                  <p className={cn(
                     "text-foreground leading-relaxed py-1 break-words whitespace-pre-wrap",
-                    "text-white",
+                    "text-white/90",
                     isMobile && "mobile-text"
-                  )}
-                />
-              )}
+                  )}>
+                    {message.content}
+                  </p>
+                ) : (
+                  <AnimatedText
+                    text={message.content}
+                    className={cn(
+                      "text-foreground leading-relaxed py-1 break-words whitespace-pre-wrap",
+                      "text-white",
+                      isMobile && "mobile-text"
+                    )}
+                  />
+                )}
+              </div>
             </div>
-            {/* Pulsanti di azione per il messaggio - diversi per mobile e desktop */}
+
+            {/* Pulsanti di azione per il messaggio - allineamento migliorato */}
             <div className={cn(
+              "w-full flex justify-end mt-1.5",
               isMobile 
-                ? "message-actions flex justify-end space-x-1" 
-                : "absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex space-x-1"
+                ? "message-actions space-x-1" 
+                : "opacity-0 group-hover:opacity-100 transition-opacity duration-300 space-x-1"
             )}>
               <Button
                 variant="ghost"
                 size="icon"
                 className={cn(
                   "h-7 w-7 rounded-full hover:bg-primary/20",
-                  isMobile && "h-7 w-7 rounded-full bg-primary/10"
+                  isMobile && "h-6 w-6 bg-primary/10"
                 )}
                 onClick={() => copyToClipboard(message.content)}
                 title="Copia messaggio"
@@ -196,7 +203,7 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
                 size="icon"
                 className={cn(
                   "h-7 w-7 rounded-full hover:bg-primary/20",
-                  isMobile && "h-7 w-7 rounded-full bg-primary/10"
+                  isMobile && "h-6 w-6 bg-primary/10"
                 )}
                 onClick={() => handleEditStart(message)}
                 title="Modifica messaggio"
@@ -208,7 +215,7 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
                 size="icon"
                 className={cn(
                   "h-7 w-7 rounded-full hover:bg-primary/20",
-                  isMobile && "h-7 w-7 rounded-full bg-primary/10"
+                  isMobile && "h-6 w-6 bg-primary/10"
                 )}
                 onClick={() => handleDeleteStart(message)}
                 title="Elimina messaggio"

@@ -40,6 +40,10 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
   const processedChatsRef = useRef<Record<string, number>>({});
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   
+  // Gestione dell'upload di file
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  
   const { data: currentChat } = useQuery<Chat>({
     queryKey: [`/api/chats/${chatId}`],
     enabled: !!chatId,
@@ -98,6 +102,7 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
     onSuccess: async () => {
       // Reset dell'input
       setMessage("");
+      setAttachedFile(null);
       
       // Aggiorna i messaggi
       await queryClient.invalidateQueries({ queryKey: [`/api/chats/${chatId}/messages`] });
@@ -136,6 +141,29 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
     setWebSearchEnabled(!webSearchEnabled);
   };
   
+  // Gestisce l'apertura del selettore di file
+  const handleAttachFile = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+  
+  // Gestisce la selezione di un file
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAttachedFile(file);
+      toast({
+        title: "File allegato",
+        description: `${file.name} allegato con successo`,
+      });
+      
+      // Per ora, inseriamo solo il nome del file nel messaggio
+      // In un'implementazione reale, il file verrebbe caricato sul server
+      setMessage(prev => prev + `\n[File: ${file.name}]`);
+    }
+  };
+  
   // Funzione per inserire un template di messaggio
   const insertTemplate = (templateMessage: string) => {
     setMessage(templateMessage);
@@ -160,6 +188,7 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
         <form onSubmit={handleSendMessage}>
           <div className="bg-[#101c38] border border-primary/30 rounded-xl shadow-lg transition-all duration-300 ease-in-out">
             <div className="flex items-center p-1.5">
+              {/* Azioni a sinistra - riorganizzate per miglior allineamento */}
               <div className="flex items-center space-x-1 mr-1">
                 <Button
                   type="button"
@@ -174,16 +203,32 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
                 >
                   <GlobeIcon className={cn("text-white", isMobile ? "h-3 w-3" : "h-3.5 w-3.5")} />
                 </Button>
-                {!isMobile && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="rounded-full hover:bg-primary/20 transition-all duration-300 h-7 w-7"
-                  >
-                    <PaperclipIcon className="h-3.5 w-3.5" />
-                  </Button>
-                )}
+                
+                {/* Pulsante per allegare file - ora disponibile sia su desktop che mobile */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "rounded-full hover:bg-primary/20 transition-all duration-300",
+                    isMobile ? "h-6 w-6" : "h-7 w-7"
+                  )}
+                  onClick={handleAttachFile}
+                >
+                  <PaperclipIcon className={cn(
+                    "text-white",
+                    isMobile ? "h-3 w-3" : "h-3.5 w-3.5"
+                  )} />
+                </Button>
+                
+                {/* Input nascosto per la selezione dei file */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  accept="image/*,.pdf,.doc,.docx,.txt"
+                />
               </div>
               
               <Textarea
@@ -217,7 +262,7 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
           </div>
         </form>
 
-        {/* Menu a dropdown per dispositivi mobili */}
+        {/* Menu a dropdown per dispositivi mobili - migliorato allineamento */}
         {isMobile && (
           <div className="flex justify-center mt-1 suggestions-container">
             <DropdownMenu>
