@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useRoute } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useRoute, useLocation } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Chat as ChatType, Message } from "@/lib/types";
 import { useIsMobile } from "@/hooks/use-mobile";
 import Sidebar from "@/components/Sidebar";
@@ -9,6 +9,8 @@ import MessageInput from "@/components/MessageInput";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { MenuIcon, ChevronDownIcon } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,14 +22,50 @@ export default function Chat() {
   const isMobile = useIsMobile();
   const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
   const [, params] = useRoute<{ id: string }>("/chat/:id");
+  const [, setLocation] = useLocation(); // Aggiunto per la navigazione
   const chatId = params ? parseInt(params.id) : 0;
   const [selectedModel, setSelectedModel] = useState("Llama 3.1 8b Instruct");
   
   // Fetch chat data
-  const { data: chat, isLoading: isLoadingChat } = useQuery<ChatType>({
+  const { data: chat, isLoading: isLoadingChat, isError: isChatError } = useQuery<ChatType>({
     queryKey: [`/api/chats/${chatId}`],
-    enabled: !!chatId
+    enabled: !!chatId,
+    retry: false, // Non riprovare se la query fallisce (chat non trovata)
   });
+  
+  // Fetch chat messages
+  const { data: messages = [], isLoading: isLoadingMessages } = useQuery<Message[]>({
+    queryKey: [`/api/chats/${chatId}/messages`],
+    enabled: !!chatId && !!chat, // Carica i messaggi solo se la chat esiste
+  });
+  
+  // Delete chat mutation
+  const deleteChatMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest('DELETE', `/api/chats/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/chats'] });
+      setLocation('/'); // Reindirizza alla home dopo l'eliminazione
+    },
+  });
+
+  // Verifica se la chat è vuota e in tal caso la elimina
+  useEffect(() => {
+    if (!isLoadingMessages && !isLoadingChat && chatId && messages && messages.length === 0 && chat) {
+      // Se la chat esiste ma non ha messaggi (nemmeno il messaggio iniziale del sistema)
+      console.log("Chat vuota rilevata. Eliminazione in corso...");
+      deleteChatMutation.mutate(chatId);
+    }
+  }, [chatId, messages, isLoadingMessages, isLoadingChat, chat]);
+  
+  // Reindirizza alla home se la chat non esiste (errore nella query o chat non trovata)
+  useEffect(() => {
+    if ((!isLoadingChat && chatId && !chat) || isChatError) {
+      console.log("Chat non trovata. Reindirizzamento alla home...");
+      setLocation('/');
+    }
+  }, [chatId, chat, isLoadingChat, isChatError, setLocation]);
   
   // Close sidebar on mobile when route changes
   useEffect(() => {
