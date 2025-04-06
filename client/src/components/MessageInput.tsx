@@ -262,14 +262,15 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
           </div>
         </form>
 
-        {/* Menu a dropdown per dispositivi mobili - migliorato allineamento */}
+        {/* Menu a dropdown per dispositivi mobili - MIGLIORATO E RIDIMENSIONATO */}
         {isMobile && (
           <div className="flex justify-center mt-1 suggestions-container">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
-                  className="bg-[#101c38] hover:bg-primary/20 border-primary/20 text-xs h-6 w-full rounded-xl transition-all"
+                  className="bg-[#101c38] hover:bg-primary/20 border-primary/20 text-xs rounded-xl transition-all max-w-[140px] mx-auto"
+                  style={{ height: "28px", padding: "0 12px" }}
                 >
                   <MoreHorizontalIcon className="h-3 w-3 mr-1 text-primary" />
                   <span className="text-white/90 text-xs">Suggerimenti</span>
