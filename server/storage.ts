@@ -4,27 +4,46 @@ import {
   messages, type Message, type InsertMessage
 } from "@shared/schema";
 
+// Funzione per generare ID randomici simili a UUID
+function generateRandomId(): string {
+  // Formato esempio: "67f26d4f-53f8-8012-810c-6475c02b3249"
+  const hexChars = '0123456789abcdef';
+  const sections = [8, 4, 4, 4, 12]; // Numero di caratteri per ogni sezione
+  
+  let result = '';
+  for (let i = 0; i < sections.length; i++) {
+    for (let j = 0; j < sections[i]; j++) {
+      result += hexChars[Math.floor(Math.random() * hexChars.length)];
+    }
+    if (i < sections.length - 1) {
+      result += '-';
+    }
+  }
+  
+  return result;
+}
+
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   
   getChats(userId: number): Promise<Chat[]>;
-  getChat(id: number): Promise<Chat | undefined>;
+  getChat(id: string): Promise<Chat | undefined>; // Modificato: da number a string
   createChat(chat: InsertChat): Promise<Chat>;
-  updateChat(id: number, data: Partial<InsertChat>): Promise<Chat | undefined>;
-  deleteChat(id: number): Promise<boolean>;
+  updateChat(id: string, data: Partial<InsertChat>): Promise<Chat | undefined>; // Modificato: da number a string
+  deleteChat(id: string): Promise<boolean>; // Modificato: da number a string
   
-  getMessages(chatId: number): Promise<Message[]>;
+  getMessages(chatId: string): Promise<Message[]>; // Modificato: da number a string
   createMessage(message: InsertMessage): Promise<Message>;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
-  private chats: Map<number, Chat>;
+  private chats: Map<string, Chat>; // Modificato: da number a string
   private messages: Map<number, Message>;
   private currentUserId: number;
-  private currentChatId: number;
+  // Rimosso currentChatId poiché ora utilizziamo ID randomici
   private currentMessageId: number;
 
   constructor() {
@@ -32,7 +51,6 @@ export class MemStorage implements IStorage {
     this.chats = new Map();
     this.messages = new Map();
     this.currentUserId = 1;
-    this.currentChatId = 1;
     this.currentMessageId = 1;
     
     // Create a default user
@@ -69,12 +87,12 @@ export class MemStorage implements IStorage {
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
   
-  async getChat(id: number): Promise<Chat | undefined> {
+  async getChat(id: string): Promise<Chat | undefined> { // Modificato: da number a string
     return this.chats.get(id);
   }
   
   async createChat(insertChat: InsertChat): Promise<Chat> {
-    const id = this.currentChatId++;
+    const id = generateRandomId(); // Modificato: ora utilizziamo la funzione generateRandomId
     const chat: Chat = { 
       ...insertChat, 
       id, 
@@ -84,7 +102,7 @@ export class MemStorage implements IStorage {
     return chat;
   }
   
-  async updateChat(id: number, data: Partial<InsertChat>): Promise<Chat | undefined> {
+  async updateChat(id: string, data: Partial<InsertChat>): Promise<Chat | undefined> { // Modificato: da number a string
     const chat = this.chats.get(id);
     if (!chat) {
       return undefined;
@@ -98,7 +116,7 @@ export class MemStorage implements IStorage {
     return updatedChat;
   }
   
-  async deleteChat(id: number): Promise<boolean> {
+  async deleteChat(id: string): Promise<boolean> { // Modificato: da number a string
     // Delete the chat
     const deleted = this.chats.delete(id);
     
@@ -117,7 +135,7 @@ export class MemStorage implements IStorage {
     return deleted;
   }
   
-  async getMessages(chatId: number): Promise<Message[]> {
+  async getMessages(chatId: string): Promise<Message[]> { // Modificato: da number a string
     return Array.from(this.messages.values())
       .filter(message => message.chatId === chatId)
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());

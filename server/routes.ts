@@ -21,7 +21,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get a specific chat
   app.get("/api/chats/:id", async (req: Request, res: Response) => {
     try {
-      const chatId = parseInt(req.params.id);
+      const chatId = req.params.id; // Modificato: rimosso parseInt
       const chat = await storage.getChat(chatId);
       
       if (!chat) {
@@ -64,7 +64,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update a chat
   app.patch("/api/chats/:id", async (req: Request, res: Response) => {
     try {
-      const chatId = parseInt(req.params.id);
+      const chatId = req.params.id; // Modificato: rimosso parseInt
       const chat = await storage.getChat(chatId);
       
       if (!chat) {
@@ -81,7 +81,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete a chat
   app.delete("/api/chats/:id", async (req: Request, res: Response) => {
     try {
-      const chatId = parseInt(req.params.id);
+      const chatId = req.params.id; // Modificato: rimosso parseInt
       const deleted = await storage.deleteChat(chatId);
       
       if (!deleted) {
@@ -97,7 +97,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get messages for a chat
   app.get("/api/chats/:id/messages", async (req: Request, res: Response) => {
     try {
-      const chatId = parseInt(req.params.id);
+      const chatId = req.params.id; // Modificato: rimosso parseInt
       const messages = await storage.getMessages(chatId);
       res.json(messages);
     } catch (error) {

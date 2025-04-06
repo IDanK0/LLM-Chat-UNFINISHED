@@ -23,7 +23,7 @@ export default function Chat() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
   const [, params] = useRoute<{ id: string }>("/chat/:id");
   const [, setLocation] = useLocation(); // Aggiunto per la navigazione
-  const chatId = params ? parseInt(params.id) : 0;
+  const chatId = params ? params.id : ""; // Modificato: rimosso parseInt
   const [selectedModel, setSelectedModel] = useState("Llama 3.1 8b Instruct");
   
   // Fetch chat data
@@ -41,7 +41,7 @@ export default function Chat() {
   
   // Delete chat mutation
   const deleteChatMutation = useMutation({
-    mutationFn: async (id: number) => {
+    mutationFn: async (id: string) => { // Modificato: da number a string
       return apiRequest('DELETE', `/api/chats/${id}`);
     },
     onSuccess: () => {

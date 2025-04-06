@@ -11,8 +11,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Textarea } from "@/components/ui/textarea";
 import AnimatedText from "./AnimatedText";
 import { getSettings } from "@/lib/settingsStore";
+
 interface ChatInterfaceProps {
-  chatId: number;
+  chatId: string; // Modificato: da number a string
 }
 
 export default function ChatInterface({ chatId }: ChatInterfaceProps) {

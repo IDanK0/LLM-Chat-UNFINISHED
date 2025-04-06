@@ -1,18 +1,18 @@
-export interface Chat {
-  id: number;
+interface Chat {
+  id: string; // Modificato: da number a string
   userId: number;
   title: string;
   createdAt: string;
 }
 
-export interface Message {
+interface ChatWithMessages extends Chat {
+  messages: Message[];
+}
+
+interface Message {
   id: number;
-  chatId: number;
+  chatId: string; // Modificato: da number a string
   content: string;
   isUserMessage: boolean;
   createdAt: string;
-}
-
-export interface ChatWithMessages extends Chat {
-  messages: Message[];
 }

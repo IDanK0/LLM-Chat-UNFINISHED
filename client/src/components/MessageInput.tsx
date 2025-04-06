@@ -20,7 +20,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 interface MessageInputProps {
-  chatId: number;
+  chatId: string; // Modificato: da number a string
   selectedModel: string;
 }
 
@@ -31,7 +31,8 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
   const { toast } = useToast();
   
   // Cache delle chat già processate per ID con useRef per persistenza tra render
-  const processedChatsRef = useRef<Record<number, number>>({});
+  // Modificato: da Record<number, number> a Record<string, number>
+  const processedChatsRef = useRef<Record<string, number>>({});
   
   // Riferimento al timer per debounce
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
