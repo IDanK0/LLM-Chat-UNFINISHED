@@ -48,7 +48,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add initial AI message
       await storage.createMessage({
         chatId: chat.id,
-        content: "Buon pomeriggio, come posso essere utile?",
+        content: "Buon pomeriggio, come posso essere utile oggi?\n\nPuoi chiedermi qualsiasi cosa in italiano. Sono qui per aiutarti a trovare informazioni, scrivere contenuti o risolvere problemi.",
         isUserMessage: false
       });
       
@@ -118,52 +118,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const chatHistory = await storage.getMessages(messageData.chatId);
       
       // Generate AI response using the complete chat history, selected model, and API settings
-      const aiResponseContent = await generateAIResponse(chatHistory, modelName, apiSettings);
+      let aiResponse = await generateAIResponse(chatHistory, modelName, apiSettings);
+      
+      // Ensure the response is clean
+      aiResponse = aiResponse.replace(/\s*undefined\s*$/g, '').trim();
       
       // Create AI response message
-      const aiResponse = await storage.createMessage({
+      const aiResponseMessage = await storage.createMessage({
         chatId: messageData.chatId,
-        content: aiResponseContent,
+        content: aiResponse,
         isUserMessage: false
       });
       
-      res.status(201).json({ userMessage, aiResponse });
+      res.status(201).json({ userMessage, aiResponseMessage });
     } catch (error) {
       if (error instanceof ZodError) {
         return res.status(400).json({ message: fromZodError(error).message });
       }
       res.status(500).json({ message: "Failed to send message" });
-    }
-  });
-
-  // Endpoint per generare titoli per le chat usando l'AI
-  app.post("/api/generate-title", async (req, res) => {
-    try {
-      const { context, prompt } = req.body;
-      
-      // Usa l'API di AI per generare un titolo basato sul contesto della conversazione
-      const response = await generateAIResponse([
-        {
-          id: 0,
-          chatId: 0,
-          content: `${prompt}\n\nContesto della conversazione:\n${context}`,
-          isUserMessage: true,
-          createdAt: new Date().toISOString()
-}
-      ]);
-      
-      // Estrai il titolo generato dall'AI
-      let title = response.trim();
-      
-      // Limita la lunghezza del titolo se necessario
-      if (title.length > 50) {
-        title = title.substring(0, 47) + "...";
-      }
-      
-      res.json({ title });
-    } catch (error) {
-      console.error("Errore nella generazione del titolo:", error);
-      res.status(500).json({ error: "Impossibile generare il titolo" });
     }
   });
 
