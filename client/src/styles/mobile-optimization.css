@@ -1,0 +1,59 @@
+/* Stili per dispositivi mobili */
+.mobile-device {
+  /* Disabilita comportamenti indesiderati su mobile */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Aumenta le dimensioni dei tocchi per elementi interattivi su dispositivi mobili */
+.mobile-device button,
+.mobile-device [role="button"],
+.mobile-device a {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Ottimizza dimensione testo su schermi piccoli */
+.mobile-device {
+  font-size: 16px; /* Garantisce una dimensione minima leggibile */
+}
+
+/* Ottimizza gli spazi su mobile */
+.mobile-device .p-4 {
+  padding: 0.75rem !important;
+}
+
+.mobile-device .space-y-8 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(1.5rem * calc(1 - var(--tw-space-y-reverse))) !important;
+  margin-bottom: calc(1.5rem * var(--tw-space-y-reverse)) !important;
+}
+
+/* Ottimizza l'input dei messaggi su mobile */
+.mobile-device .message-input-container {
+  padding-bottom: env(safe-area-inset-bottom, 0.5rem);
+}
+
+/* Ottimizza le altezze degli elementi per evitare overflow su mobile */
+.mobile-device .chat-interface {
+  max-height: calc(100vh - 140px);
+}
+
+/* Ottimizza i dialoghi su mobile */
+.mobile-device [role="dialog"] {
+  max-width: 95vw !important;
+}
+
+/* Ottimizza i bottoni dei messaggi su mobile per essere più facili da toccare */
+.mobile-device .message-actions {
+  opacity: 1 !important;
+  position: static !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  margin-top: 0.5rem !important;
+}
+
+.mobile-device .message-actions button {
+  height: 36px !important;
+  width: 36px !important;
+}

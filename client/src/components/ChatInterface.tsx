@@ -11,12 +11,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Textarea } from "@/components/ui/textarea";
 import AnimatedText from "./AnimatedText";
 import { getSettings } from "@/lib/settingsStore";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ChatInterfaceProps {
-  chatId: string; // Modificato: da number a string
+  chatId: string;
 }
 
 export default function ChatInterface({ chatId }: ChatInterfaceProps) {
+  const isMobile = useIsMobile();
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [editedContent, setEditedContent] = useState("");
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -121,14 +123,14 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-6 md:px-8">
+    <div className="flex-1 overflow-y-auto px-4 py-6 md:px-8 chat-interface">
       <div className="max-w-3xl mx-auto">
         {/* Mostra i messaggi della chat se ce ne sono */}
         {messages.length > 0 && messages.map((message) => (
           <div
             key={message.id}
             className={cn(
-              "relative flex items-start mb-6 p-3 rounded-xl transition-all duration-300 group",
+              "relative flex flex-col md:flex-row items-start mb-6 p-3 rounded-xl transition-all duration-300 group",
               message.isUserMessage 
                 ? "hover:bg-primary/5" 
                 : "bg-[#101c38] border border-primary/30 shadow-md hover:shadow-lg hover:border-primary/40"
@@ -146,7 +148,8 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
               {message.isUserMessage ? (
                 <p className={cn(
                   "text-foreground leading-relaxed py-1 break-all whitespace-pre-wrap",
-                  "text-white/90"
+                  "text-white/90",
+                  isMobile ? "text-base" : ""
                 )}>
                   {message.content}
                 </p>
@@ -155,47 +158,52 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
                   text={message.content}
                   className={cn(
                     "text-foreground leading-relaxed py-1 break-all whitespace-pre-wrap",
-                    "text-white"
+                    "text-white",
+                    isMobile ? "text-base" : ""
                   )}
                 />
               )}
             </div>
-            {/* Pulsanti di azione per il messaggio - riordinati: copia, modifica, elimina */}
-            <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex space-x-1">
+            {/* Pulsanti di azione per il messaggio - riordinati e ottimizzati per mobile */}
+            <div className={cn(
+              isMobile 
+                ? "message-actions mt-2 flex justify-end space-x-2" 
+                : "absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex space-x-1"
+            )}>
               <Button
                 variant="ghost"
-                size="icon"
-                className="h-7 w-7 rounded-full hover:bg-primary/20"
+                size={isMobile ? "sm" : "icon"}
+                className={isMobile ? "h-9 w-9 rounded-full bg-primary/10" : "h-7 w-7 rounded-full hover:bg-primary/20"}
                 onClick={() => copyToClipboard(message.content)}
                 title="Copia messaggio"
               >
-                <CopyIcon className="h-3.5 w-3.5 text-primary" />
+                <CopyIcon className={cn("text-primary", isMobile ? "h-4 w-4" : "h-3.5 w-3.5")} />
               </Button>
               <Button
                 variant="ghost"
-                size="icon"
-                className="h-7 w-7 rounded-full hover:bg-primary/20"
+                size={isMobile ? "sm" : "icon"}
+                className={isMobile ? "h-9 w-9 rounded-full bg-primary/10" : "h-7 w-7 rounded-full hover:bg-primary/20"}
                 onClick={() => handleEditStart(message)}
                 title="Modifica messaggio"
               >
-                <PencilIcon className="h-3.5 w-3.5 text-primary" />
+                <PencilIcon className={cn("text-primary", isMobile ? "h-4 w-4" : "h-3.5 w-3.5")} />
               </Button>
               <Button
                 variant="ghost"
-                size="icon"
-                className="h-7 w-7 rounded-full hover:bg-primary/20"
+                size={isMobile ? "sm" : "icon"}
+                className={isMobile ? "h-9 w-9 rounded-full bg-primary/10" : "h-7 w-7 rounded-full hover:bg-primary/20"}
                 onClick={() => handleDeleteStart(message)}
                 title="Elimina messaggio"
               >
-                <Trash2Icon className="h-3.5 w-3.5 text-primary" />
+                <Trash2Icon className={cn("text-primary", isMobile ? "h-4 w-4" : "h-3.5 w-3.5")} />
               </Button>
             </div>
           </div>
         ))}
       </div>
-      {/* Dialog per modificare un messaggio */}
+      {/* Dialog per modificare un messaggio - ottimizzato per mobile */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="bg-sidebar border-primary/30 text-white">
+        <DialogContent className="bg-sidebar border-primary/30 text-white max-w-[95vw] md:max-w-md">
           <DialogHeader>
             <DialogTitle>Modifica messaggio</DialogTitle>
           </DialogHeader>
@@ -204,18 +212,18 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
             onChange={(e) => setEditedContent(e.target.value)}
             className="min-h-[100px] mt-2 bg-white/10 border-primary/30 text-white textarea-glow"
           />
-          <DialogFooter className="mt-4">
+          <DialogFooter className={cn("mt-4", isMobile && "flex-col space-y-2")}>
             <Button 
               variant="outline" 
               onClick={() => setIsEditDialogOpen(false)}
-              className="border-primary/30 text-white hover:bg-primary/20"
+              className={cn("border-primary/30 text-white hover:bg-primary/20", isMobile && "w-full")}
             >
               Annulla
             </Button>
             <Button 
               onClick={handleSaveEdit}
               disabled={!editedContent.trim()}
-              className="bg-primary hover:bg-primary/90"
+              className={cn("bg-primary hover:bg-primary/90", isMobile && "w-full")}
             >
               Salva
             </Button>
@@ -223,25 +231,25 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog per confermare l'eliminazione di un messaggio */}
+      {/* Dialog per confermare l'eliminazione di un messaggio - ottimizzato per mobile */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="bg-sidebar border-primary/30 text-white">
+        <DialogContent className="bg-sidebar border-primary/30 text-white max-w-[95vw] md:max-w-md">
           <DialogHeader>
             <DialogTitle>Conferma eliminazione</DialogTitle>
           </DialogHeader>
           <p className="mt-2 text-white/80">Sei sicuro di voler eliminare questo messaggio? Questa azione non può essere annullata.</p>
-          <DialogFooter className="mt-4">
+          <DialogFooter className={cn("mt-4", isMobile && "flex-col space-y-2")}>
             <Button 
               variant="outline" 
               onClick={() => setIsDeleteDialogOpen(false)}
-              className="border-primary/30 text-white hover:bg-primary/20"
+              className={cn("border-primary/30 text-white hover:bg-primary/20", isMobile && "w-full")}
             >
               Annulla
             </Button>
             <Button 
               onClick={handleDeleteConfirm}
               variant="destructive"
-              className="bg-red-500 hover:bg-red-600"
+              className={cn("bg-red-500 hover:bg-red-600", isMobile && "w-full")}
             >
               Elimina
             </Button>

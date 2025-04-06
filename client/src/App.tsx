@@ -5,7 +5,10 @@ import { Toaster } from "@/components/ui/toaster";
 import Home from "@/pages/Home";
 import Chat from "@/pages/Chat";
 import NotFound from "@/pages/not-found";
+import { MobileOptimization } from "@/components/MobileOptimization";
 
+// Importiamo gli stili specifici per mobile
+import "@/styles/mobile-optimization.css";
 function Router() {
   return (
     <Switch>
@@ -19,6 +22,7 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <MobileOptimization />
       <Router />
       <Toaster />
     </QueryClientProvider>
