@@ -64,7 +64,7 @@ export async function generateAIResponse(
     const apiModelName = MODEL_NAME_MAP[modelName] || "meta-llama-3.1-8b-instruct";
     
     // Usa l'URL dell'API dalle impostazioni o quello di default
-    const apiUrl = settings?.apiUrl || 'http://172.24.64.1:8080/v1/chat/completions';
+    const apiUrl = settings?.apiUrl || 'http://192.168.1.50:8080/v1/chat/completions';
     
     console.log(`Sending request to API with model: ${apiModelName}`);
     

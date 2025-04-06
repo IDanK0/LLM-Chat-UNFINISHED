@@ -148,46 +148,46 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
         textarea.focus();
         // Imposta l'altezza dell'input in base al contenuto
         textarea.style.height = 'auto';
-        textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
+        textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
       }
     }
   };
   return (
-    <div className="border-t border-border bg-background p-3 md:p-6 message-input-container">
+    <div className="border-t border-border bg-background p-2 md:p-4 message-input-container">
       <div className="max-w-3xl mx-auto">
         <form onSubmit={handleSendMessage}>
-          <div className="bg-[#101c38] border border-primary/30 rounded-xl mb-2 shadow-lg transition-all duration-300 ease-in-out">
-            <div className="flex items-center p-2">
-              <div className="flex items-center space-x-2 mr-2">
+          <div className="bg-[#101c38] border border-primary/30 rounded-xl shadow-lg transition-all duration-300 ease-in-out">
+            <div className="flex items-center p-1.5">
+              <div className="flex items-center space-x-1 mr-1">
                 <Button
                   type="button"
                   variant={webSearchEnabled ? "default" : "ghost"}
                   size="icon"
-                  className={`rounded-full transition-all duration-300 ${webSearchEnabled ? 'bg-primary/80 text-white shadow-md' : 'hover:bg-primary/20'}`}
+                  className={`rounded-full transition-all duration-300 h-7 w-7 ${webSearchEnabled ? 'bg-primary/80 text-white shadow-md' : 'hover:bg-primary/20'}`}
                   onClick={toggleWebSearch}
                 >
-                  <GlobeIcon className="h-4 w-4" />
+                  <GlobeIcon className="h-3.5 w-3.5" />
                 </Button>
                 {!isMobile && (
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="rounded-full hover:bg-primary/20 transition-all duration-300"
+                    className="rounded-full hover:bg-primary/20 transition-all duration-300 h-7 w-7"
                   >
-                    <PaperclipIcon className="h-4 w-4" />
+                    <PaperclipIcon className="h-3.5 w-3.5" />
                   </Button>
                 )}
               </div>
               
               <Textarea
                 placeholder="Come posso aiutarti oggi?"
-                className="flex-1 bg-transparent border-0 outline-none shadow-none focus-visible:ring-0 text-sm textarea-glow resize-none py-2 min-h-[36px] transition-all duration-200 max-h-[200px] overflow-y-auto"
+                className="flex-1 bg-transparent border-0 outline-none shadow-none focus-visible:ring-0 text-sm textarea-glow resize-none py-1.5 min-h-[36px] transition-all duration-200 max-h-[120px] overflow-y-auto"
                 value={message}
                 onChange={(e) => {
                   setMessage(e.target.value);
                   e.target.style.height = 'auto';
-                  e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`;
+                  e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
                 }}
                 onKeyDown={handleKeyDown}
                 rows={1}
@@ -195,25 +195,25 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
               <Button 
                 type="submit" 
                 size="icon" 
-                className="rounded-full bg-primary hover:bg-primary/90 ml-2 transition-all duration-300 transform hover:scale-105"
+                className="rounded-full bg-primary hover:bg-primary/90 ml-1 transition-all duration-300 transform hover:scale-105 h-7 w-7"
                 disabled={!message.trim() || sendMessageMutation.isPending}
               >
-                <ArrowRightIcon className="h-4 w-4" />
+                <ArrowRightIcon className="h-3.5 w-3.5" />
               </Button>
             </div>
           </div>
         </form>
 
-        {/* Menu a dropdown per dispositivi mobili */}
+        {/* Menu a dropdown per dispositivi mobili - reso più compatto */}
         {isMobile && (
-          <div className="flex justify-center mt-2">
+          <div className="flex justify-center mt-1.5">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
-                  className="bg-[#101c38] hover:bg-primary/20 border-primary/20 text-sm h-9 w-full rounded-xl transition-all duration-300"
+                  className="bg-[#101c38] hover:bg-primary/20 border-primary/20 text-xs h-7 w-full rounded-xl transition-all duration-300"
                 >
-                  <MoreHorizontalIcon className="h-5 w-5 mr-2 text-primary" />
+                  <MoreHorizontalIcon className="h-4 w-4 mr-1.5 text-primary" />
                   <span className="text-white/90">Suggerimenti</span>
                 </Button>
               </DropdownMenuTrigger>
@@ -222,41 +222,41 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
                 className="bg-[#101c38] border-primary/30 w-[250px] rounded-xl shadow-xl"
               >
                 <DropdownMenuItem 
-                  className="text-white hover:bg-primary/20 focus:bg-primary/20 rounded-lg my-1 py-3"
+                  className="text-white hover:bg-primary/20 focus:bg-primary/20 rounded-lg my-0.5 py-2 text-sm"
                   onClick={() => insertTemplate("Puoi generare un'immagine di un gatto che suona il pianoforte?")}
                 >
-                  <ImageIcon className="h-4 w-4 mr-3 text-primary" />
+                  <ImageIcon className="h-3.5 w-3.5 mr-2 text-primary" />
                   <span>Crea immagine</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem 
-                  className="text-white hover:bg-primary/20 focus:bg-primary/20 rounded-lg my-1 py-3"
+                  className="text-white hover:bg-primary/20 focus:bg-primary/20 rounded-lg my-0.5 py-2 text-sm"
                   onClick={() => insertTemplate("Puoi scrivere un esempio di codice React per una to-do list?")}
                 >
-                  <Code2Icon className="h-4 w-4 mr-3 text-primary" />
+                  <Code2Icon className="h-3.5 w-3.5 mr-2 text-primary" />
                   <span>Codice</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem 
-                  className="text-white hover:bg-primary/20 focus:bg-primary/20 rounded-lg my-1 py-3"
+                  className="text-white hover:bg-primary/20 focus:bg-primary/20 rounded-lg my-0.5 py-2 text-sm"
                   onClick={() => insertTemplate("Aiutami a creare un piano di studio per imparare il machine learning in 3 mesi.")}
                 >
-                  <FileIcon className="h-4 w-4 mr-3 text-primary" />
+                  <FileIcon className="h-3.5 w-3.5 mr-2 text-primary" />
                   <span>Fai un piano</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem 
-                  className="text-white hover:bg-primary/20 focus:bg-primary/20 rounded-lg my-1 py-3"
+                  className="text-white hover:bg-primary/20 focus:bg-primary/20 rounded-lg my-0.5 py-2 text-sm"
                   onClick={() => {
                     setWebSearchEnabled(true);
                     insertTemplate("Quali sono gli sviluppi più recenti nell'intelligenza artificiale generativa?");
                   }}
                 >
-                  <NotebookTextIcon className="h-4 w-4 mr-3 text-primary" />
+                  <NotebookTextIcon className="h-3.5 w-3.5 mr-2 text-primary" />
                   <span>Notizie</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem 
-                  className="text-white hover:bg-primary/20 focus:bg-primary/20 rounded-lg my-1 py-3"
+                  className="text-white hover:bg-primary/20 focus:bg-primary/20 rounded-lg my-0.5 py-2 text-sm"
                   onClick={() => insertTemplate("Qual è la differenza tra machine learning e deep learning?")}
                 >
-                  <PlusIcon className="h-4 w-4 mr-3 text-primary" />
+                  <PlusIcon className="h-3.5 w-3.5 mr-2 text-primary" />
                   <span>Altro</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>

@@ -106,12 +106,12 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
 
   if (isLoading) {
     return (
-      <div className="flex-1 overflow-y-auto px-4 py-6 md:px-8">
-        <div className="max-w-3xl mx-auto space-y-6">
+      <div className="flex-1 overflow-y-auto px-2 py-2 md:px-8">
+        <div className="max-w-3xl mx-auto space-y-4">
           {[1, 2].map((i) => (
-            <div key={i} className="flex items-start mb-6">
-              <Skeleton className="h-8 w-8 rounded-full mr-4" />
-              <div className="space-y-2">
+            <div key={i} className="flex items-start mb-4">
+              <Skeleton className="h-8 w-8 rounded-full mr-2" />
+              <div className="space-y-1">
                 <Skeleton className="h-4 w-[250px]" />
                 <Skeleton className="h-4 w-[400px]" />
               </div>
@@ -123,21 +123,21 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-6 md:px-8 chat-interface">
+    <div className="flex-1 overflow-y-auto px-2 py-2 md:px-8 chat-interface">
       <div className="max-w-3xl mx-auto">
         {/* Mostra i messaggi della chat se ce ne sono */}
         {messages.length > 0 && messages.map((message) => (
           <div
             key={message.id}
             className={cn(
-              "relative flex flex-col md:flex-row items-start mb-6 p-3 rounded-xl transition-all duration-300 group",
+              "relative flex flex-col md:flex-row items-start mb-3 p-2 rounded-xl transition-all duration-300 group",
               message.isUserMessage 
                 ? "hover:bg-primary/5" 
                 : "bg-[#101c38] border border-primary/30 shadow-md hover:shadow-lg hover:border-primary/40"
             )}
           >
             <div className={cn(
-              "flex-shrink-0 mr-4 w-8 h-8 rounded-full flex items-center justify-center text-sm self-start mt-0.5",
+              "flex-shrink-0 mr-2 w-7 h-7 rounded-full flex items-center justify-center text-sm self-start mt-0.5",
               message.isUserMessage 
                 ? "bg-blue-500/20 text-blue-500" 
                 : "bg-primary/30 text-primary"
@@ -149,7 +149,7 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
                 <p className={cn(
                   "text-foreground leading-relaxed py-1 break-all whitespace-pre-wrap",
                   "text-white/90",
-                  isMobile ? "text-base" : ""
+                  isMobile ? "text-sm" : ""
                 )}>
                   {message.content}
                 </p>
@@ -159,7 +159,7 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
                   className={cn(
                     "text-foreground leading-relaxed py-1 break-all whitespace-pre-wrap",
                     "text-white",
-                    isMobile ? "text-base" : ""
+                    isMobile ? "text-sm" : ""
                   )}
                 />
               )}
@@ -167,35 +167,35 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
             {/* Pulsanti di azione per il messaggio - riordinati e ottimizzati per mobile */}
             <div className={cn(
               isMobile 
-                ? "message-actions mt-2 flex justify-end space-x-2" 
+                ? "message-actions flex justify-end space-x-1" 
                 : "absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex space-x-1"
             )}>
               <Button
                 variant="ghost"
                 size={isMobile ? "sm" : "icon"}
-                className={isMobile ? "h-9 w-9 rounded-full bg-primary/10" : "h-7 w-7 rounded-full hover:bg-primary/20"}
+                className={isMobile ? "h-8 w-8 rounded-full bg-primary/10" : "h-7 w-7 rounded-full hover:bg-primary/20"}
                 onClick={() => copyToClipboard(message.content)}
                 title="Copia messaggio"
               >
-                <CopyIcon className={cn("text-primary", isMobile ? "h-4 w-4" : "h-3.5 w-3.5")} />
+                <CopyIcon className={cn("text-primary", isMobile ? "h-3.5 w-3.5" : "h-3.5 w-3.5")} />
               </Button>
               <Button
                 variant="ghost"
                 size={isMobile ? "sm" : "icon"}
-                className={isMobile ? "h-9 w-9 rounded-full bg-primary/10" : "h-7 w-7 rounded-full hover:bg-primary/20"}
+                className={isMobile ? "h-8 w-8 rounded-full bg-primary/10" : "h-7 w-7 rounded-full hover:bg-primary/20"}
                 onClick={() => handleEditStart(message)}
                 title="Modifica messaggio"
               >
-                <PencilIcon className={cn("text-primary", isMobile ? "h-4 w-4" : "h-3.5 w-3.5")} />
+                <PencilIcon className={cn("text-primary", isMobile ? "h-3.5 w-3.5" : "h-3.5 w-3.5")} />
               </Button>
               <Button
                 variant="ghost"
                 size={isMobile ? "sm" : "icon"}
-                className={isMobile ? "h-9 w-9 rounded-full bg-primary/10" : "h-7 w-7 rounded-full hover:bg-primary/20"}
+                className={isMobile ? "h-8 w-8 rounded-full bg-primary/10" : "h-7 w-7 rounded-full hover:bg-primary/20"}
                 onClick={() => handleDeleteStart(message)}
                 title="Elimina messaggio"
               >
-                <Trash2Icon className={cn("text-primary", isMobile ? "h-4 w-4" : "h-3.5 w-3.5")} />
+                <Trash2Icon className={cn("text-primary", isMobile ? "h-3.5 w-3.5" : "h-3.5 w-3.5")} />
               </Button>
             </div>
           </div>

@@ -3,40 +3,41 @@
   /* Disabilita comportamenti indesiderati su mobile */
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+  /* Garantisce una dimensione minima leggibile */
+  font-size: 16px;
 }
 
 /* Aumenta le dimensioni dei tocchi per elementi interattivi su dispositivi mobili */
 .mobile-device button,
 .mobile-device [role="button"],
 .mobile-device a {
-  min-height: 44px;
-  min-width: 44px;
+  min-height: 36px; /* Ridotto da 44px per risparmiare spazio */
+  min-width: 36px; /* Ridotto da 44px per risparmiare spazio */
 }
 
-/* Ottimizza dimensione testo su schermi piccoli */
-.mobile-device {
-  font-size: 16px; /* Garantisce una dimensione minima leggibile */
-}
-
-/* Ottimizza gli spazi su mobile */
+/* Ottimizza gli spazi su mobile - riduzione padding */
 .mobile-device .p-4 {
-  padding: 0.75rem !important;
+  padding: 0.5rem !important; /* Ridotto da 0.75rem */
 }
 
 .mobile-device .space-y-8 > :not([hidden]) ~ :not([hidden]) {
   --tw-space-y-reverse: 0;
-  margin-top: calc(1.5rem * calc(1 - var(--tw-space-y-reverse))) !important;
-  margin-bottom: calc(1.5rem * var(--tw-space-y-reverse)) !important;
+  margin-top: calc(1rem * calc(1 - var(--tw-space-y-reverse))) !important; /* Ridotto da 1.5rem */
+  margin-bottom: calc(1rem * var(--tw-space-y-reverse)) !important; /* Ridotto da 1.5rem */
 }
 
-/* Ottimizza l'input dei messaggi su mobile */
+/* Ottimizza l'input dei messaggi su mobile - riduciamo il padding */
 .mobile-device .message-input-container {
-  padding-bottom: env(safe-area-inset-bottom, 0.5rem);
+  padding: 0.5rem !important;
+  padding-bottom: calc(env(safe-area-inset-bottom, 0.5rem) + 0.5rem) !important;
 }
 
-/* Ottimizza le altezze degli elementi per evitare overflow su mobile */
+/* Ottimizziamo le altezze degli elementi per evitare overflow su mobile */
 .mobile-device .chat-interface {
-  max-height: calc(100vh - 140px);
+  height: auto !important;
+  flex: 1 !important;
+  overflow-y: auto !important;
+  /* Layout flessibile invece di altezze fisse */
 }
 
 /* Ottimizza i dialoghi su mobile */
@@ -50,10 +51,44 @@
   position: static !important;
   display: flex !important;
   justify-content: flex-end !important;
-  margin-top: 0.5rem !important;
+  margin-top: 0.25rem !important; /* Ridotto da 0.5rem */
 }
 
 .mobile-device .message-actions button {
-  height: 36px !important;
-  width: 36px !important;
+  height: 32px !important; /* Ridotto da 36px */
+  width: 32px !important; /* Ridotto da 36px */
+}
+
+/* Struttura del layout mobile ottimizzata */
+.mobile-device main {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+}
+
+.mobile-device header {
+  flex-shrink: 0 !important; 
+  padding-top: 0.5rem !important;
+  padding-bottom: 0.5rem !important;
+}
+
+.mobile-device .chat-interface {
+  flex: 1 1 auto !important;
+  min-height: 0 !important; /* Importante per il funzionamento del flexbox su Safari */
+}
+
+/* Ottimizziamo lo spazio dei messaggi */
+.mobile-device .chat-interface > div {
+  padding-top: 0.5rem !important;
+  padding-bottom: 0.5rem !important;
+}
+
+/* Riduciamo lo spazio tra i messaggi */
+.mobile-device .chat-interface .mb-6 {
+  margin-bottom: 0.75rem !important;
+}
+
+/* Ottimizziamo la barra dei suggerimenti */
+.mobile-device .message-input-container + div {
+  margin-top: 0.25rem !important;
 }
