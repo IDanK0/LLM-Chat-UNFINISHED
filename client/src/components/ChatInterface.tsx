@@ -4,7 +4,7 @@ import { Message } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { CopyIcon, PencilIcon } from "lucide-react";
+import { CopyIcon, PencilIcon, Trash2Icon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -19,6 +19,8 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [editedContent, setEditedContent] = useState("");
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [messageToDelete, setMessageToDelete] = useState<Message | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const { data: messages = [], isLoading } = useQuery<Message[]>({
@@ -50,6 +52,29 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
     setEditingMessage(message);
     setEditedContent(message.content);
     setIsEditDialogOpen(true);
+  };
+
+  // Gestisce l'eliminazione del messaggio
+  const handleDeleteStart = (message: Message) => {
+    setMessageToDelete(message);
+    setIsDeleteDialogOpen(true);
+  };
+
+  // Conferma ed esegue l'eliminazione del messaggio
+  const handleDeleteConfirm = () => {
+    if (messageToDelete && messages) {
+      // In una app reale, chiameremmo un'API per eliminare il messaggio
+      const updatedMessages = messages.filter(msg => msg.id !== messageToDelete.id);
+      
+      // Aggiorniamo manualmente la cache di React Query
+      queryClient.setQueryData([`/api/chats/${chatId}/messages`], updatedMessages);
+      
+      toast({
+        title: "Messaggio eliminato",
+        description: "Il messaggio è stato eliminato con successo"
+      });
+      setIsDeleteDialogOpen(false);
+    }
   };
 
   // Simula la salvataggio del messaggio modificato (in una app reale, sarà necessario un endpoint API)
@@ -134,8 +159,17 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
                 />
               )}
             </div>
-            {/* Pulsanti di azione per il messaggio */}
+            {/* Pulsanti di azione per il messaggio - riordinati: copia, modifica, elimina */}
             <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex space-x-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded-full hover:bg-primary/20"
+                onClick={() => copyToClipboard(message.content)}
+                title="Copia messaggio"
+              >
+                <CopyIcon className="h-3.5 w-3.5 text-primary" />
+              </Button>
               <Button
                 variant="ghost"
                 size="icon"
@@ -149,63 +183,15 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7 rounded-full hover:bg-primary/20"
-                onClick={() => copyToClipboard(message.content)}
-                title="Copia messaggio"
+                onClick={() => handleDeleteStart(message)}
+                title="Elimina messaggio"
               >
-                <CopyIcon className="h-3.5 w-3.5 text-primary" />
+                <Trash2Icon className="h-3.5 w-3.5 text-primary" />
               </Button>
             </div>
           </div>
         ))}
-
-        {/* Messaggio di benvenuto mostrato solo quando non ci sono messaggi */}
-        {messages.length === 0 && (
-          <div className="relative flex items-start mb-6 p-3 rounded-xl bg-[#101c38] border border-primary/30 shadow-md hover:shadow-lg hover:border-primary/40 transition-all duration-300 group">
-            <div className="flex-shrink-0 mr-4 w-8 h-8 rounded-full bg-primary/30 flex items-center justify-center text-sm text-primary self-start mt-0.5">
-              AI
-            </div>
-            <div className="flex-1 flex flex-col justify-center">
-              <AnimatedText
-                text="Buon pomeriggio, come posso essere utile?"
-                className="text-lg font-medium text-white leading-relaxed break-words whitespace-pre-wrap"
-              />
-            </div>
-
-            {/* Pulsanti di azione per il messaggio */}
-            <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex space-x-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 rounded-full hover:bg-primary/20"
-                onClick={() => {
-                  setEditingMessage({
-                    id: 0,
-                    chatId: chatId,
-                    content: "Buon pomeriggio, come posso essere utile?",
-                    isUserMessage: false,
-                    createdAt: new Date().toISOString()
-                  });
-                  setEditedContent("Buon pomeriggio, come posso essere utile?");
-                  setIsEditDialogOpen(true);
-                }}
-                title="Modifica messaggio"
-              >
-                <PencilIcon className="h-3.5 w-3.5 text-primary" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 rounded-full hover:bg-primary/20"
-                onClick={() => copyToClipboard("Buon pomeriggio, come posso essere utile?")}
-                title="Copia messaggio"
-              >
-                <CopyIcon className="h-3.5 w-3.5 text-primary" />
-              </Button>
-            </div>
-          </div>
-        )}
       </div>
-
       {/* Dialog per modificare un messaggio */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="bg-sidebar border-primary/30 text-white">
@@ -235,25 +221,32 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
-      {/* Controllo accessibilità per animazioni */}
-      {getSettings().stream && (
-        <div className="fixed bottom-4 right-4 z-10 opacity-70 hover:opacity-100 transition-opacity">
-          <Button
-            variant="outline"
-            size="sm"
-            className="bg-sidebar/80 border-primary/30 text-white hover:bg-primary/20"
-            onClick={() => {
-              const settings = getSettings();
-              settings.stream = !settings.stream;
-              localStorage.setItem("apiSettings", JSON.stringify(settings));
-              window.location.reload();
-            }}
-          >
-            {getSettings().stream ? "Disattiva animazioni" : "Attiva animazioni"}
-          </Button>
-        </div>
-      )}
+
+      {/* Dialog per confermare l'eliminazione di un messaggio */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="bg-sidebar border-primary/30 text-white">
+          <DialogHeader>
+            <DialogTitle>Conferma eliminazione</DialogTitle>
+          </DialogHeader>
+          <p className="mt-2 text-white/80">Sei sicuro di voler eliminare questo messaggio? Questa azione non può essere annullata.</p>
+          <DialogFooter className="mt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsDeleteDialogOpen(false)}
+              className="border-primary/30 text-white hover:bg-primary/20"
+            >
+              Annulla
+            </Button>
+            <Button 
+              onClick={handleDeleteConfirm}
+              variant="destructive"
+              className="bg-red-500 hover:bg-red-600"
+            >
+              Elimina
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
