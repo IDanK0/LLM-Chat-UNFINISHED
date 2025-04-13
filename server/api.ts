@@ -1,5 +1,6 @@
 import fetch from 'node-fetch';
 import { Message } from '@shared/schema';
+import { ServerConfig } from './config';
 
 // Interfaccia per i messaggi nel formato richiesto dall'API
 interface LlamaMessage {
@@ -14,15 +15,9 @@ interface ApiRequestSettings {
   maxTokens?: number;
   stream?: boolean; // Mantenuto per compatibilità ma non verrà utilizzato
 }
-
-// Mappa per convertire i nomi dei modelli visualizzati nell'UI ai nomi tecnici per l'API
-const MODEL_NAME_MAP: Record<string, string> = {
-  "Llama 3.1 8b Instruct": "meta-llama-3.1-8b-instruct",
-  "Gemma 3 12b it Instruct": "gemma-3-12b-it"
-};
   
 // Converti i messaggi dal formato DB al formato API - Ottimizzato
-function convertMessagesToLlamaFormat(messages: Message[]): LlamaMessage[] {
+function convertMessagesToLlamaFormat(messages: Message[], modelName: string): LlamaMessage[] {
   // Data corrente formattata per il messaggio di sistema
   const formattedDate = new Date().toLocaleDateString('it-IT', { 
     weekday: 'long', 
@@ -30,23 +25,76 @@ function convertMessagesToLlamaFormat(messages: Message[]): LlamaMessage[] {
     month: 'long', 
     day: 'numeric' 
   });
-  // Costruisci il messaggio di sistema una volta sola
-  const systemMessage: LlamaMessage = {
-    role: 'system',
-    content: `Sei un assistente AI italiano utile, preciso e amichevole. Oggi è ${formattedDate}. Rispondi in modo accurato e naturale.`
-  };
   
-  // Pre-allocare l'array di output con la dimensione corretta migliora le prestazioni
-  const result: LlamaMessage[] = new Array(messages.length + 1);
-  result[0] = systemMessage;
+  const systemContent = `Sei un assistente AI italiano utile, preciso e amichevole. Oggi è ${formattedDate}. Rispondi in modo accurato e naturale.`;
   
-  // Mappa ottimizzata dei messaggi
-  for (let i = 0; i < messages.length; i++) {
-    const msg = messages[i];
-    result[i + 1] = {
-      role: msg.isUserMessage ? 'user' : 'assistant',
-      content: msg.content
-    };
+  // Identifica se stiamo usando un modello Gemma
+  const isGemmaModel = modelName === "Gemma 3 12b it Instruct" || modelName === "gemma-3-12b-it";
+  
+  let result: LlamaMessage[] = [];
+  
+  if (isGemmaModel) {
+    // Per Gemma, iniziamo direttamente con i messaggi user/assistant
+    // Il primo messaggio deve essere dell'utente
+    if (messages.length === 0) {
+      // Se non ci sono messaggi, creiamo un primo messaggio utente con le istruzioni
+      result.push({
+        role: 'user',
+        content: systemContent
+      });
+    } else {
+      // Verifichiamo se il primo messaggio è dell'utente
+      if (messages[0].isUserMessage) {
+        // Se il primo messaggio è dell'utente, lo incorporiamo con il contenuto del sistema
+        result.push({
+          role: 'user',
+          content: `${systemContent}\n\n${messages[0].content}`
+        });
+      } else {
+        // Se il primo messaggio è dell'assistente, inseriamo prima un messaggio utente con le istruzioni
+        result.push({
+          role: 'user',
+          content: systemContent
+        });
+        result.push({
+          role: 'assistant',
+          content: messages[0].content
+        });
+      }
+      
+      // Aggiungi il resto dei messaggi, mantenendo l'alternanza
+      let expectedRole = result[result.length - 1].role === 'user' ? 'assistant' : 'user';
+      
+      for (let i = 1; i < messages.length; i++) {
+        const role = messages[i].isUserMessage ? 'user' : 'assistant';
+        
+        // Verifica che stiamo mantenendo l'alternanza
+        if (role === expectedRole) {
+          result.push({
+            role: role,
+            content: messages[i].content
+          });
+          expectedRole = expectedRole === 'user' ? 'assistant' : 'user';
+        } else {
+          console.log(`Skipping message with role ${role} as it breaks alternation pattern`);
+        }
+      }
+    }
+  } else {
+    // Per modelli come Llama, utilizziamo il formato standard con messaggio di sistema
+    result.push({
+      role: 'system',
+      content: systemContent
+    });
+    
+    // Aggiungi tutti i messaggi
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i];
+      result.push({
+        role: msg.isUserMessage ? 'user' : 'assistant',
+        content: msg.content
+      });
+    }
   }
 
   return result;
@@ -58,16 +106,22 @@ export async function generateAIResponse(
   settings?: ApiRequestSettings
 ): Promise<string> {
   try {
-    // Converti i messaggi nel formato richiesto dall'API
-    const formattedMessages = convertMessagesToLlamaFormat(messages);
-    
     // Ottieni il nome del modello tecnico dalla mappa usando il nome UI o usa il default
-    const apiModelName = MODEL_NAME_MAP[modelName] || "meta-llama-3.1-8b-instruct";
+    let apiModelName: string;
+    if (modelName === "Gemma 3 12b it Instruct") {
+      apiModelName = "gemma-3-12b-it";
+    } else {
+      apiModelName = ServerConfig.MODEL_NAME_MAP[modelName] || "meta-llama-3.1-8b-instruct";
+    }
     
-    // Usa l'URL dell'API dalle impostazioni o quello di default
-    const apiUrl = settings?.apiUrl || 'http://127.0.0.1:8080/v1/chat/completions';
+    // Converti i messaggi nel formato richiesto dall'API in base al modello
+    const formattedMessages = convertMessagesToLlamaFormat(messages, modelName);
     
-    console.log(`Sending request to API with model: ${apiModelName}`);
+    // Usa l'URL dell'API dalle impostazioni o quello di default dalla configurazione centralizzata
+    const apiUrl = settings?.apiUrl || ServerConfig.DEFAULT_API_URL;
+    
+    console.log(`Sending request to API at ${apiUrl} with model: ${apiModelName}`);
+    console.log(`Formatted messages:`, JSON.stringify(formattedMessages, null, 2));
     
     // Implementazione di cache per richieste ripetute
     const cacheKey = JSON.stringify({ messages: formattedMessages, model: apiModelName });
@@ -76,21 +130,39 @@ export async function generateAIResponse(
       console.log("Cache hit, returning cached response");
       return cachedResponse;
     }
+
+    // Crea il corpo della richiesta
+    const requestBody = {
+      model: apiModelName,
+      messages: formattedMessages,
+      temperature: settings?.temperature ?? 0.7,
+      max_tokens: settings?.maxTokens ?? -1,
+      stream: false
+    };
+
+    console.log(`Request body: ${JSON.stringify(requestBody, null, 2)}`);
+
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: apiModelName,  // Usa il nome del modello selezionato
-        messages: formattedMessages,
-        temperature: settings?.temperature ?? 0.7,
-        max_tokens: settings?.maxTokens ?? -1,
-        stream: false  // Forzato sempre a false indipendentemente dalle impostazioni utente
-      })
+      body: JSON.stringify(requestBody)
     });
 
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`API error response: ${response.status} ${errorText}`);
+      throw new Error(`API response error: ${response.status} ${errorText}`);
+    }
+
     const data = await response.json();
+    
+    if (!data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
+      console.error("Formato di risposta API non valido - choices non trovato:", data);
+      throw new Error("Formato di risposta API non valido: choices non trovato");
+    }
+    
     const content = data.choices[0].message.content;
     
     // Memorizza nella cache
@@ -99,7 +171,7 @@ export async function generateAIResponse(
     return content;
   } catch (error) {
     console.error('Error generating AI response:', error);
-    return 'Mi dispiace, ma al momento non riesco a generare una risposta. Riprova più tardi.';
+    return `Mi dispiace, ma al momento non riesco a generare una risposta. Riprova con un altro modello o contatta l'assistenza.`;
   }
 }
 
@@ -115,24 +187,43 @@ export async function improveText(
     }
     
     // Ottieni il nome del modello tecnico dalla mappa usando il nome UI o usa il default
-    const apiModelName = MODEL_NAME_MAP[modelName] || "meta-llama-3.1-8b-instruct";
+    let apiModelName: string;
+    if (modelName === "Gemma 3 12b it Instruct") {
+      apiModelName = "gemma-3-12b-it";
+    } else {
+      apiModelName = ServerConfig.MODEL_NAME_MAP[modelName] || "meta-llama-3.1-8b-instruct";
+    }
     
-    // Usa l'URL dell'API dalle impostazioni o quello di default
-    const apiUrl = settings?.apiUrl || 'http://127.0.0.1:8080/v1/chat/completions';
+    // Usa l'URL dell'API dalle impostazioni o quello di default dalla configurazione centralizzata
+    const apiUrl = settings?.apiUrl || ServerConfig.DEFAULT_API_URL;
     
-    console.log(`Improving text with model: ${apiModelName}`);
+    console.log(`Improving text with model: ${apiModelName} at URL: ${apiUrl}`);
     
     // Crea messaggi per il miglioramento del prompt
-    const messages = [
-      {
-        role: 'system',
-        content: 'Sei un esperto di prompt engineering. Il tuo compito è migliorare il testo dell\'utente per renderlo più chiaro, specifico e strutturato per ottenere risposte migliori da un modello di AI. Rispondi solo con la versione migliorata del prompt, senza spiegazioni o altro testo.'
-      },
-      {
-        role: 'user',
-        content: text
-      }
-    ];
+    let messages: LlamaMessage[] = [];
+    
+    // Gestisci in modo diverso i messaggi per Gemma vs altri modelli
+    if (apiModelName === "gemma-3-12b-it") {
+      // Per Gemma, usa solo messaggi utente senza sistema
+      messages = [
+        {
+          role: 'user',
+          content: `Sei un esperto di prompt engineering. Il tuo compito è migliorare il testo che ti invierò per renderlo più chiaro, specifico e strutturato. Rispondi solo con la versione migliorata del prompt, senza spiegazioni o altro testo. Ecco il testo da migliorare: "${text}"`
+        }
+      ];
+    } else {
+      // Per altri modelli, usa il formato standard con messaggio di sistema
+      messages = [
+        {
+          role: 'system',
+          content: 'Sei un esperto di prompt engineering. Il tuo compito è migliorare il testo dell\'utente per renderlo più chiaro, specifico e strutturato per ottenere risposte migliori da un modello di AI. Rispondi solo con la versione migliorata del prompt, senza spiegazioni o altro testo.'
+        },
+        {
+          role: 'user',
+          content: text
+        }
+      ];
+    }
     
     // Implementazione di cache per richieste ripetute
     const cacheKey = JSON.stringify({ text, model: apiModelName, action: 'improve' });
@@ -141,27 +232,39 @@ export async function improveText(
       console.log("Cache hit, returning cached improved text");
       return cachedResponse;
     }
+
+    // Crea il corpo della richiesta
+    const requestBody = {
+      model: apiModelName,
+      messages: messages,
+      temperature: settings?.temperature ?? 0.7,
+      max_tokens: settings?.maxTokens ?? -1,
+      stream: false
+    };
+
+    console.log(`Request body for text improvement: ${JSON.stringify(requestBody, null, 2)}`);
     
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: apiModelName,
-        messages: messages,
-        temperature: settings?.temperature ?? 0.7,
-        max_tokens: settings?.maxTokens ?? -1,
-        stream: false
-      })
+      body: JSON.stringify(requestBody)
     });
     
     if (!response.ok) {
       const errorText = await response.text();
+      console.error(`API error response: ${response.status} ${errorText}`);
       throw new Error(`API response error: ${response.status} ${errorText}`);
     }
 
     const data = await response.json();
+    
+    if (!data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
+      console.error("Formato di risposta API non valido - choices non trovato:", data);
+      throw new Error("Formato di risposta API non valido: choices non trovato");
+    }
+    
     const improvedText = data.choices[0].message.content;
     
     // Memorizza nella cache

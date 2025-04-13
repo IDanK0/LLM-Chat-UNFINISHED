@@ -5,12 +5,7 @@ import { generateAIResponse } from "./api";
 import { insertChatSchema, insertMessageSchema } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
-
-// Mappa per convertire i nomi dei modelli visualizzati nell'UI ai nomi tecnici per l'API
-const MODEL_NAME_MAP: Record<string, string> = {
-  "Llama 3.1 8b Instruct": "meta-llama-3.1-8b-instruct",
-  "Gemma 3 12b it Instruct": "gemma-3-12b-it"
-};
+import { ServerConfig } from "./config";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get all chats for a user
@@ -148,7 +143,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // NUOVO ENDPOINT: Migliora il testo dell'utente
   app.post("/api/improve-text", async (req: Request, res: Response) => {
     try {
-      const { text, modelName } = req.body;
+      const { text, modelName, apiSettings } = req.body;
       
       if (!text || typeof text !== 'string') {
         return res.status(400).json({ message: "Il testo da migliorare è richiesto" });
@@ -157,26 +152,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Richiesta ricevuta per migliorare testo:", text.substring(0, 50) + (text.length > 50 ? '...' : ''));
       
       // Ottieni il nome del modello tecnico dalla mappa usando il nome UI o usa il default
-      const apiModelName = MODEL_NAME_MAP[modelName] || "meta-llama-3.1-8b-instruct";
+      let apiModelName: string;
+      if (modelName === "Gemma 3 12b it Instruct") {
+        apiModelName = "gemma-3-12b-it";
+      } else {
+        apiModelName = ServerConfig.MODEL_NAME_MAP[modelName] || "meta-llama-3.1-8b-instruct";
+      }
       
-      // URL dell'API locale con l'indirizzo 127.0.0.1
-      const apiUrl = 'http://127.0.0.1:8080/v1/chat/completions';
+      // Usa l'URL dell'API dalle impostazioni o quello di default dalla configurazione centralizzata
+      const apiUrl = apiSettings?.apiUrl || ServerConfig.DEFAULT_API_URL;
       
-      console.log(`Improving text with model: ${apiModelName}`);
+      console.log(`Improving text with model: ${apiModelName} at URL: ${apiUrl}`);
       
-      // Assicurati che il campo 'messages' sia definito correttamente
-      const messages = [
-        {
-          role: 'system',
-          content: 'Sei un esperto di prompt engineering. Il tuo compito è migliorare il testo dell\'utente per renderlo più chiaro, specifico e strutturato per ottenere risposte migliori da un modello di AI. Rispondi solo con la versione migliorata del prompt, senza spiegazioni o altro testo.'
-        },
-        {
-          role: 'user',
-          content: text
-        }
-      ];
+      // Crea messaggi per il miglioramento del prompt in base al modello
+      let messages: any[];
       
-      console.log(`Sending request to ${apiUrl}`);
+      if (apiModelName === "gemma-3-12b-it") {
+        // Per Gemma, usa solo messaggi utente senza sistema
+        messages = [
+          {
+            role: 'user',
+            content: `Sei un esperto di prompt engineering. Il tuo compito è migliorare il testo che ti invierò per renderlo più chiaro, specifico e strutturato. Rispondi solo con la versione migliorata del prompt, senza spiegazioni o altro testo. Ecco il testo da migliorare: "${text}"`
+          }
+        ];
+      } else {
+        // Per altri modelli, usa il formato standard con messaggio di sistema
+        messages = [
+          {
+            role: 'system',
+            content: 'Sei un esperto di prompt engineering. Il tuo compito è migliorare il testo dell\'utente per renderlo più chiaro, specifico e strutturato per ottenere risposte migliori da un modello di AI. Rispondi solo con la versione migliorata del prompt, senza spiegazioni o altro testo.'
+          },
+          {
+            role: 'user',
+            content: text
+          }
+        ];
+      }
+      
+      console.log(`Sending request to ${apiUrl} with messages:`, JSON.stringify(messages, null, 2));
       
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -186,8 +199,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         body: JSON.stringify({
           model: apiModelName,
           messages: messages,
-          temperature: req.body.temperature || 0.7,
-          max_tokens: -1,
+          temperature: apiSettings?.temperature || 0.7,
+          max_tokens: apiSettings?.maxTokens || -1,
           stream: false
         })
       });
