@@ -13,7 +13,7 @@ export const availableModels: ModelConfig[] = [
     apiName: "meta-llama-3.1-8b-instruct"
   },
   {
-    displayName: "Gemma 3 12b it Instruct",
+    displayName: "Gemma 3 12b it",
     apiName: "gemma-3-12b-it"
   },
   {
