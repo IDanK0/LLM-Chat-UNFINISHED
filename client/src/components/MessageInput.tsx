@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { apiRequest } from "@/lib/queryClient";
@@ -18,7 +18,7 @@ import {
   FileIcon,
   MoreHorizontalIcon,
   PaperclipIcon,
-  Wand2Icon // Aggiungo l'icona della bacchetta magica per il miglioramento del testo
+  Wand2Icon
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -40,6 +40,7 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
   const { toast } = useToast();
   const processedChatsRef = useRef<Record<string, number>>({});
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   
   // Gestione dell'upload di file
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -120,6 +121,8 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
         throw new Error("Il testo è vuoto");
       }
       
+      console.log("Invio richiesta per migliorare:", textToImprove);
+      
       // Usiamo l'endpoint del server invece di chiamare direttamente l'API
       const response = await apiRequest("POST", "/api/improve-text", {
         text: textToImprove,
@@ -127,25 +130,54 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
         temperature: getSettings().temperature || 0.7
       });
       
-      return response.improvedText;
-    },
-    onSuccess: (improvedText) => {
-      // Imposta il testo migliorato nella casella di input
-      setMessage(improvedText);
+      // MODIFICA: Estrai il corpo JSON dalla risposta prima di elaborarlo
+      const responseData = await response.json();
       
-      // Adatta l'altezza della textarea
-      const textarea = document.querySelector('textarea');
-      if (textarea) {
-        textarea.style.height = 'auto';
-        textarea.style.height = `${Math.min(textarea.scrollHeight, isMobile ? 80 : 120)}px`;
+      console.log("Risposta ricevuta dal server:", responseData);
+      
+      if (!responseData || typeof responseData !== 'object' || !('improvedText' in responseData)) {
+        console.error("La risposta non contiene improvedText:", responseData);
+        throw new Error("Risposta API non valida");
       }
       
-      toast({
-        title: "Testo migliorato",
-        description: "Il contenuto è stato migliorato con successo.",
-      });
+      return responseData.improvedText;
+    },
+    onSuccess: (improvedText) => {
+      console.log("onSuccess chiamato con testo migliorato:", improvedText);
+      
+      // Imposta il testo migliorato nella casella di input
+      if (improvedText && typeof improvedText === 'string') {
+        setMessage(improvedText);
+        console.log("Testo della casella aggiornato a:", improvedText);
+        
+        // Forza un aggiornamento della textarea
+        setTimeout(() => {
+          // Adatta l'altezza della textarea
+          if (textareaRef.current) {
+            const textarea = textareaRef.current;
+            textarea.style.height = 'auto';
+            textarea.style.height = `${Math.min(textarea.scrollHeight, isMobile ? 80 : 120)}px`;
+            // Forza il focus e la selezione per assicurarsi che il testo sia visibile
+            textarea.focus();
+          }
+        }, 50);
+        
+        toast({
+          title: "Testo migliorato",
+          description: "Il contenuto è stato migliorato con successo.",
+        });
+      } else {
+        console.error("improvedText è vuoto o non è una stringa:", improvedText);
+        toast({
+          title: "Errore",
+          description: "Il testo migliorato ricevuto non è valido.",
+          variant: "destructive",
+        });
+      }
     },
     onError: (error) => {
+      console.error("Errore durante il miglioramento:", error);
+      
       toast({
         title: "Errore",
         description: `Impossibile migliorare il testo: ${error instanceof Error ? error.message : "Errore sconosciuto"}`,
@@ -156,6 +188,14 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
       setIsImprovingText(false);
     }
   });
+  
+  // Effetto per sincronizzare il riferimento alla textarea
+  useEffect(() => {
+    const textarea = document.querySelector('textarea');
+    if (textarea) {
+      textareaRef.current = textarea as HTMLTextAreaElement;
+    }
+  }, []);
   
   // Funzione per migliorare il testo
   const handleImproveText = () => {
@@ -231,14 +271,24 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
     setMessage(templateMessage);
     if (isMobile) {
       // Focus sull'input dopo l'inserimento su mobile
-      const textarea = document.querySelector('textarea');
-      if (textarea) {
-        textarea.focus();
-        // Imposta l'altezza dell'input in base al contenuto
-        textarea.style.height = 'auto';
-        textarea.style.height = `${Math.min(textarea.scrollHeight, 80)}px`;
-      }
+      setTimeout(() => {
+        if (textareaRef.current) {
+          const textarea = textareaRef.current;
+          textarea.focus();
+          // Imposta l'altezza dell'input in base al contenuto
+          textarea.style.height = 'auto';
+          textarea.style.height = `${Math.min(textarea.scrollHeight, 80)}px`;
+        }
+      }, 10);
     }
+  };
+  
+  // Funzione per gestire il cambio del testo nella textarea e aggiornare il riferimento
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setMessage(e.target.value);
+    textareaRef.current = e.target;
+    e.target.style.height = 'auto';
+    e.target.style.height = `${Math.min(e.target.scrollHeight, isMobile ? 80 : 120)}px`;
   };
   
   return (
@@ -321,14 +371,11 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
                   isMobile && "message-textarea py-1 min-h-[28px] max-h-[80px]"
                 )}
                 value={message}
-                onChange={(e) => {
-                  setMessage(e.target.value);
-                  e.target.style.height = 'auto';
-                  e.target.style.height = `${Math.min(e.target.scrollHeight, isMobile ? 80 : 120)}px`;
-                }}
+                onChange={handleTextareaChange}
                 onKeyDown={handleKeyDown}
                 rows={1}
                 disabled={isImprovingText}
+                ref={textareaRef}
               />
               <Button 
                 type="submit" 

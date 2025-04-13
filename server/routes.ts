@@ -154,10 +154,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Il testo da migliorare è richiesto" });
       }
       
+      console.log("Richiesta ricevuta per migliorare testo:", text.substring(0, 50) + (text.length > 50 ? '...' : ''));
+      
       // Ottieni il nome del modello tecnico dalla mappa usando il nome UI o usa il default
       const apiModelName = MODEL_NAME_MAP[modelName] || "meta-llama-3.1-8b-instruct";
       
-      // URL dell'API locale con l'indirizzo IP corretto del server LLM
+      // URL dell'API locale con l'indirizzo 127.0.0.1
       const apiUrl = 'http://127.0.0.1:8080/v1/chat/completions';
       
       console.log(`Improving text with model: ${apiModelName}`);
@@ -174,14 +176,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       ];
       
-      // Debug: stampa la richiesta
-      console.log(`Sending request to ${apiUrl} with payload:`, {
-        model: apiModelName,
-        messages: messages,
-        temperature: req.body.temperature || 0.7,
-        max_tokens: -1,
-        stream: false
-      });
+      console.log(`Sending request to ${apiUrl}`);
       
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -199,13 +194,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!response.ok) {
         const errorText = await response.text();
+        console.error(`API error response: ${response.status} ${errorText}`);
         throw new Error(`API response error: ${response.status} ${errorText}`);
       }
 
+      console.log("API response received successfully");
       const data = await response.json();
-      const improvedText = data.choices[0].message.content;
+      console.log("API response data structure:", JSON.stringify(data).substring(0, 100) + "...");
       
-      res.json({ improvedText });
+      // CORREZIONE: Estrai il testo dalla struttura corretta del formato OpenAI
+      // La risposta ha il formato: { choices: [{ message: { content: "..." } }] }
+      if (!data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
+        console.error("Formato di risposta API non valido - choices non trovato:", data);
+        throw new Error("Formato di risposta API non valido: choices non trovato");
+      }
+      
+      const choice = data.choices[0];
+      if (!choice || !choice.message || !choice.message.content) {
+        console.error("Formato di risposta API non valido - message o content non trovato:", choice);
+        throw new Error("Formato di risposta API non valido: message.content non trovato");
+      }
+      
+      const improvedText = choice.message.content;
+      console.log("Improved text extracted:", improvedText.substring(0, 50) + (improvedText.length > 50 ? '...' : ''));
+      
+      // Invia la risposta al client nel formato atteso
+      const responseObj = { improvedText };
+      console.log("Sending response to client:", { improvedTextLength: improvedText.length });
+      
+      res.json(responseObj);
     } catch (error) {
       console.error('Error improving text:', error);
       res.status(500).json({ 
