@@ -15,12 +15,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { availableModels, defaultModel } from "@/lib/modelConfig";
 
 export default function Home() {
   const [, setLocation] = useLocation();
   const isMobile = useIsMobile();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [selectedModel, setSelectedModel] = useState("Llama 3.1 8b Instruct");
+  const [selectedModel, setSelectedModel] = useState(defaultModel);
   
   // Fetch chats
   const { data: chats = [], isLoading } = useQuery<Chat[]>({
@@ -81,20 +82,16 @@ export default function Home() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align={isMobile ? "center" : "start"} className="bg-[#101c38] border-primary/30 rounded-xl shadow-xl">
-                <DropdownMenuItem 
-                  onClick={() => setSelectedModel("Llama 3.1 8b Instruct")}
-                  className={`text-white hover:bg-primary/20 rounded-lg transition-all duration-200 my-1 
-                    ${selectedModel === "Llama 3.1 8b Instruct" ? "bg-primary/10 font-medium" : ""}`}
-                >
-                  Llama 3.1 8b Instruct
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => setSelectedModel("Gemma 3 12b it Instruct")}
-                  className={`text-white hover:bg-primary/20 rounded-lg transition-all duration-200 my-1
-                    ${selectedModel === "Gemma 3 12b it Instruct" ? "bg-primary/10 font-medium" : ""}`}
-                >
-                  Gemma 3 12b it Instruct
-                </DropdownMenuItem>
+                {availableModels.map(model => (
+                  <DropdownMenuItem 
+                    key={model.displayName}
+                    onClick={() => setSelectedModel(model.displayName)}
+                    className={`text-white hover:bg-primary/20 rounded-lg transition-all duration-200 my-1 
+                      ${selectedModel === model.displayName ? "bg-primary/10 font-medium" : ""}`}
+                  >
+                    {model.displayName}
+                  </DropdownMenuItem>
+                ))}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

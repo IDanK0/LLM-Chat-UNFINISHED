@@ -1,21 +1,56 @@
-import fetch from 'node-fetch';
-import { Message } from '@shared/schema';
 import { ServerConfig } from './config';
+import { Message } from '@/lib/types';
+import { getApiModelName } from '../client/src/lib/modelConfig';
 
-// Interfaccia per i messaggi nel formato richiesto dall'API
-interface LlamaMessage {
-  role: 'system' | 'user' | 'assistant';
-  content: string;
-}
-
-// Interfaccia per le impostazioni API
+// Interfaccia per le impostazioni della richiesta API
 interface ApiRequestSettings {
   apiUrl?: string;
   temperature?: number;
   maxTokens?: number;
   stream?: boolean; // Mantenuto per compatibilità ma non verrà utilizzato
 }
-  
+
+// Interfaccia per i messaggi formattati per Llama
+interface LlamaMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+// Implementazione di una cache semplice per migliorare le prestazioni
+class SimpleCache {
+  private cache: Map<string, { value: string, timestamp: number }>;
+  private maxSize: number;
+
+  constructor(maxSize = 100) {
+    this.cache = new Map();
+    this.maxSize = maxSize;
+  }
+
+  get(key: string): string | undefined {
+    const item = this.cache.get(key);
+    if (item && Date.now() - item.timestamp < 3600000) { // Cache valida per un'ora
+      return item.value;
+    }
+    return undefined;
+  }
+
+  set(key: string, value: string): void {
+    // Se la cache è piena, rimuovi la voce più vecchia
+    if (this.cache.size >= this.maxSize) {
+      const oldestKey = this.cache.keys().next().value;
+      this.cache.delete(oldestKey);
+    }
+    this.cache.set(key, { value, timestamp: Date.now() });
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+}
+
+// Istanza della cache
+const responseCache = new SimpleCache();
+
 // Converti i messaggi dal formato DB al formato API - Ottimizzato
 function convertMessagesToLlamaFormat(messages: Message[], modelName: string): LlamaMessage[] {
   // Data corrente formattata per il messaggio di sistema
@@ -36,49 +71,11 @@ function convertMessagesToLlamaFormat(messages: Message[], modelName: string): L
   if (isGemmaModel) {
     // Per Gemma, iniziamo direttamente con i messaggi user/assistant
     // Il primo messaggio deve essere dell'utente
-    if (messages.length === 0) {
-      // Se non ci sono messaggi, creiamo un primo messaggio utente con le istruzioni
+    for (const message of messages) {
       result.push({
-        role: 'user',
-        content: systemContent
+        role: message.isUserMessage ? 'user' : 'assistant',
+        content: message.content
       });
-    } else {
-      // Verifichiamo se il primo messaggio è dell'utente
-      if (messages[0].isUserMessage) {
-        // Se il primo messaggio è dell'utente, lo incorporiamo con il contenuto del sistema
-        result.push({
-          role: 'user',
-          content: `${systemContent}\n\n${messages[0].content}`
-        });
-      } else {
-        // Se il primo messaggio è dell'assistente, inseriamo prima un messaggio utente con le istruzioni
-        result.push({
-          role: 'user',
-          content: systemContent
-        });
-        result.push({
-          role: 'assistant',
-          content: messages[0].content
-        });
-      }
-      
-      // Aggiungi il resto dei messaggi, mantenendo l'alternanza
-      let expectedRole = result[result.length - 1].role === 'user' ? 'assistant' : 'user';
-      
-      for (let i = 1; i < messages.length; i++) {
-        const role = messages[i].isUserMessage ? 'user' : 'assistant';
-        
-        // Verifica che stiamo mantenendo l'alternanza
-        if (role === expectedRole) {
-          result.push({
-            role: role,
-            content: messages[i].content
-          });
-          expectedRole = expectedRole === 'user' ? 'assistant' : 'user';
-        } else {
-          console.log(`Skipping message with role ${role} as it breaks alternation pattern`);
-        }
-      }
     }
   } else {
     // Per modelli come Llama, utilizziamo il formato standard con messaggio di sistema
@@ -87,16 +84,14 @@ function convertMessagesToLlamaFormat(messages: Message[], modelName: string): L
       content: systemContent
     });
     
-    // Aggiungi tutti i messaggi
-    for (let i = 0; i < messages.length; i++) {
-      const msg = messages[i];
+    for (const message of messages) {
       result.push({
-        role: msg.isUserMessage ? 'user' : 'assistant',
-        content: msg.content
+        role: message.isUserMessage ? 'user' : 'assistant',
+        content: message.content
       });
     }
   }
-
+  
   return result;
 }
 
@@ -106,13 +101,8 @@ export async function generateAIResponse(
   settings?: ApiRequestSettings
 ): Promise<string> {
   try {
-    // Ottieni il nome del modello tecnico dalla mappa usando il nome UI o usa il default
-    let apiModelName: string;
-    if (modelName === "Gemma 3 12b it Instruct") {
-      apiModelName = "gemma-3-12b-it";
-    } else {
-      apiModelName = ServerConfig.MODEL_NAME_MAP[modelName] || "meta-llama-3.1-8b-instruct";
-    }
+    // Ottieni il nome del modello tecnico dalla funzione helper
+    const apiModelName = getApiModelName(modelName);
     
     // Converti i messaggi nel formato richiesto dall'API in base al modello
     const formattedMessages = convertMessagesToLlamaFormat(messages, modelName);
@@ -127,45 +117,56 @@ export async function generateAIResponse(
     const cacheKey = JSON.stringify({ messages: formattedMessages, model: apiModelName });
     const cachedResponse = responseCache.get(cacheKey);
     if (cachedResponse) {
-      console.log("Cache hit, returning cached response");
+      console.log("Using cached response");
       return cachedResponse;
     }
-
+    
     // Crea il corpo della richiesta
     const requestBody = {
       model: apiModelName,
       messages: formattedMessages,
       temperature: settings?.temperature ?? 0.7,
-      max_tokens: settings?.maxTokens ?? -1,
-      stream: false
+      max_tokens: settings?.maxTokens ?? 1000
     };
-
-    console.log(`Request body: ${JSON.stringify(requestBody, null, 2)}`);
-
+    
+    // Log della richiesta per debug
+    console.log(`Request body:`, JSON.stringify(requestBody, null, 2));
+    
+    // Configura il timeout per la richiesta
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), ServerConfig.API_TIMEOUT);
+    
+    // Esegui la richiesta
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify(requestBody),
+      signal: controller.signal
     });
-
+    
+    // Pulisci il timeout
+    clearTimeout(timeoutId);
+    
+    // Verifica se la richiesta ha avuto successo
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`API error response: ${response.status} ${errorText}`);
-      throw new Error(`API response error: ${response.status} ${errorText}`);
+      throw new Error(`API response error: ${response.status} ${response.statusText} - ${errorText}`);
     }
-
+    
+    // Ottieni la risposta JSON
     const data = await response.json();
     
-    if (!data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
-      console.error("Formato di risposta API non valido - choices non trovato:", data);
-      throw new Error("Formato di risposta API non valido: choices non trovato");
+    // Estrai il contenuto della risposta
+    let content = data.choices && data.choices[0]?.message?.content;
+    
+    // Se non c'è contenuto, restituisci un messaggio di errore
+    if (!content) {
+      throw new Error("No content in API response");
     }
     
-    const content = data.choices[0].message.content;
-    
-    // Memorizza nella cache
+    // Salva la risposta nella cache
     responseCache.set(cacheKey, content);
     
     return content;
@@ -175,26 +176,19 @@ export async function generateAIResponse(
   }
 }
 
-// NUOVA FUNZIONE: Migliora il testo dell'utente tramite prompt engineering
 export async function improveText(
   text: string,
   modelName = "Llama 3.1 8b Instruct",
   settings?: ApiRequestSettings
 ): Promise<string> {
+  if (!text || text.trim().length === 0) {
+    return "Il testo fornito è vuoto. Inserisci un testo da migliorare.";
+  }
+  
   try {
-    if (!text || text.trim() === '') {
-      throw new Error('Il testo da migliorare non può essere vuoto');
-    }
+    // Ottieni il nome del modello tecnico dalla funzione helper
+    const apiModelName = getApiModelName(modelName);
     
-    // Ottieni il nome del modello tecnico dalla mappa usando il nome UI o usa il default
-    let apiModelName: string;
-    if (modelName === "Gemma 3 12b it Instruct") {
-      apiModelName = "gemma-3-12b-it";
-    } else {
-      apiModelName = ServerConfig.MODEL_NAME_MAP[modelName] || "meta-llama-3.1-8b-instruct";
-    }
-    
-    // Usa l'URL dell'API dalle impostazioni o quello di default dalla configurazione centralizzata
     const apiUrl = settings?.apiUrl || ServerConfig.DEFAULT_API_URL;
     
     console.log(`Improving text with model: ${apiModelName} at URL: ${apiUrl}`);
@@ -208,7 +202,7 @@ export async function improveText(
       messages = [
         {
           role: 'user',
-          content: `Sei un esperto di prompt engineering. Il tuo compito è riscrivere il prompt fornito dall’utente in modo che sia più chiaro, dettagliato e strutturato, con l’obiettivo di ottenere risposte più precise e pertinenti da un modello di intelligenza artificiale. Restituisci esclusivamente la versione ottimizzata del prompt, senza aggiungere spiegazioni o testo aggiuntivo. Ecco il testo da migliorare: "${text}"`
+          content: `Sei un esperto di prompt engineering. Il tuo compito è riscrivere il prompt fornito dall'utente in modo che sia più chiaro, dettagliato e strutturato, con l'obiettivo di ottenere risposte più precise e pertinenti da un modello di intelligenza artificiale. Restituisci esclusivamente la versione ottimizzata del prompt, senza aggiungere spiegazioni o testo aggiuntivo. Ecco il testo da migliorare: "${text}"`
         }
       ];
     } else {
@@ -216,7 +210,7 @@ export async function improveText(
       messages = [
         {
           role: 'system',
-          content: 'Sei un esperto di prompt engineering. Il tuo compito è riscrivere il prompt fornito dall’utente in modo che sia più chiaro, dettagliato e strutturato, con l’obiettivo di ottenere risposte più precise e pertinenti da un modello di intelligenza artificiale. Restituisci esclusivamente la versione ottimizzata del prompt, senza aggiungere spiegazioni o testo aggiuntivo.'
+          content: 'Sei un esperto di prompt engineering. Il tuo compito è riscrivere il prompt fornito dall'utente in modo che sia più chiaro, dettagliato e strutturato, con l'obiettivo di ottenere risposte più precise e pertinenti da un modello di intelligenza artificiale. Restituisci esclusivamente la versione ottimizzata del prompt, senza aggiungere spiegazioni o testo aggiuntivo.'
         },
         {
           role: 'user',
@@ -229,80 +223,57 @@ export async function improveText(
     const cacheKey = JSON.stringify({ text, model: apiModelName, action: 'improve' });
     const cachedResponse = responseCache.get(cacheKey);
     if (cachedResponse) {
-      console.log("Cache hit, returning cached improved text");
+      console.log("Using cached response for text improvement");
       return cachedResponse;
     }
-
+    
     // Crea il corpo della richiesta
     const requestBody = {
       model: apiModelName,
       messages: messages,
       temperature: settings?.temperature ?? 0.7,
-      max_tokens: settings?.maxTokens ?? -1,
-      stream: false
+      max_tokens: settings?.maxTokens ?? 1000
     };
-
-    console.log(`Request body for text improvement: ${JSON.stringify(requestBody, null, 2)}`);
     
+    // Configura il timeout per la richiesta
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), ServerConfig.API_TIMEOUT);
+    
+    // Esegui la richiesta
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify(requestBody),
+      signal: controller.signal
     });
     
+    // Pulisci il timeout
+    clearTimeout(timeoutId);
+    
+    // Verifica se la richiesta ha avuto successo
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`API error response: ${response.status} ${errorText}`);
-      throw new Error(`API response error: ${response.status} ${errorText}`);
+      throw new Error(`API response error: ${response.status} ${response.statusText}`);
     }
-
+    
+    // Ottieni la risposta JSON
     const data = await response.json();
     
-    if (!data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
-      console.error("Formato di risposta API non valido - choices non trovato:", data);
-      throw new Error("Formato di risposta API non valido: choices non trovato");
+    // Estrai il contenuto della risposta
+    let content = data.choices && data.choices[0]?.message?.content;
+    
+    // Se non c'è contenuto, restituisci un messaggio di errore
+    if (!content) {
+      throw new Error("No content in API response");
     }
     
-    const improvedText = data.choices[0].message.content;
+    // Salva la risposta nella cache
+    responseCache.set(cacheKey, content);
     
-    // Memorizza nella cache
-    responseCache.set(cacheKey, improvedText);
-    
-    return improvedText;
+    return content;
   } catch (error) {
     console.error('Error improving text:', error);
-    throw error;
+    return `Mi dispiace, non sono riuscito a migliorare il testo. Errore: ${error instanceof Error ? error.message : String(error)}`;
   }
 }
-
-// Implementazione di una cache semplice per migliorare le prestazioni
-class SimpleCache {
-  private cache: Map<string, string>;
-  private maxSize: number;
-  
-  constructor(maxSize = 100) {
-    this.cache = new Map();
-    this.maxSize = maxSize;
-  }
-  
-  get(key: string): string | undefined {
-    return this.cache.get(key);
-  }
-  
-  set(key: string, value: string): void {
-    // Se la cache è piena, rimuovi la voce più vecchia
-    if (this.cache.size >= this.maxSize) {
-      const oldestKey = this.cache.keys().next().value;
-      this.cache.delete(oldestKey);
-    }
-    this.cache.set(key, value);
-  }
-  
-  clear(): void {
-    this.cache.clear();
-  }
-}
-
-const responseCache = new SimpleCache();
