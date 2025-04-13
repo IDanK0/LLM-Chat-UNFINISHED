@@ -141,7 +141,7 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
               message.isUserMessage 
                 ? "hover:bg-primary/5" 
                 : "bg-[#101c38] border border-primary/30 shadow-md hover:shadow-lg hover:border-primary/40",
-              isMobile && "mb-3 p-2.5"  // Aumentato leggermente il margine per migliorare la leggibilità
+              isMobile && "mb-3 p-2.5"
             )}
           >
             <div className="flex w-full items-start">
@@ -156,13 +156,14 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
                 {message.isUserMessage ? "Tu" : "AI"}
               </div>
 
-              {/* Contenuto del messaggio */}
-              <div className="flex-1 min-w-0">
+              {/* Contenuto del messaggio con pulsanti integrati */}
+              <div className="flex-1 min-w-0 relative">
                 {message.isUserMessage ? (
                   <p className={cn(
                     "text-foreground leading-relaxed py-1 break-words whitespace-pre-wrap",
                     "text-white/90",
-                    isMobile && "mobile-text"
+                    isMobile && "mobile-text",
+                    "pr-24" /* Aggiunto padding a destra per fare spazio ai pulsanti */
                   )}>
                     {message.content}
                   </p>
@@ -172,56 +173,57 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
                     className={cn(
                       "text-foreground leading-relaxed py-1 break-words whitespace-pre-wrap",
                       "text-white",
-                      isMobile && "mobile-text"
+                      isMobile && "mobile-text",
+                      "pr-24" /* Aggiunto padding a destra per fare spazio ai pulsanti */
                     )}
                   />
                 )}
+                
+                {/* Pulsanti di azione per il messaggio - riposizionati in BASSO a destra */}
+                <div className={cn(
+                  "absolute bottom-0 right-0",
+                  isMobile 
+                    ? "message-actions space-x-1" 
+                    : "opacity-0 group-hover:opacity-100 transition-opacity duration-300 space-x-1"
+                )}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      "h-7 w-7 rounded-full hover:bg-primary/20",
+                      isMobile && "h-6 w-6 bg-primary/10"
+                    )}
+                    onClick={() => copyToClipboard(message.content)}
+                    title="Copia messaggio"
+                  >
+                    <CopyIcon className={cn("h-3.5 w-3.5 text-primary", isMobile && "h-3 w-3")} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      "h-7 w-7 rounded-full hover:bg-primary/20",
+                      isMobile && "h-6 w-6 bg-primary/10"
+                    )}
+                    onClick={() => handleEditStart(message)}
+                    title="Modifica messaggio"
+                  >
+                    <PencilIcon className={cn("h-3.5 w-3.5 text-primary", isMobile && "h-3 w-3")} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      "h-7 w-7 rounded-full hover:bg-primary/20",
+                      isMobile && "h-6 w-6 bg-primary/10"
+                    )}
+                    onClick={() => handleDeleteStart(message)}
+                    title="Elimina messaggio"
+                  >
+                    <Trash2Icon className={cn("h-3.5 w-3.5 text-primary", isMobile && "h-3 w-3")} />
+                  </Button>
+                </div>
               </div>
-            </div>
-
-            {/* Pulsanti di azione per il messaggio - allineamento migliorato */}
-            <div className={cn(
-              "w-full flex justify-end mt-1.5",
-              isMobile 
-                ? "message-actions space-x-1" 
-                : "opacity-0 group-hover:opacity-100 transition-opacity duration-300 space-x-1"
-            )}>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "h-7 w-7 rounded-full hover:bg-primary/20",
-                  isMobile && "h-6 w-6 bg-primary/10"
-                )}
-                onClick={() => copyToClipboard(message.content)}
-                title="Copia messaggio"
-              >
-                <CopyIcon className={cn("h-3.5 w-3.5 text-primary", isMobile && "h-3 w-3")} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "h-7 w-7 rounded-full hover:bg-primary/20",
-                  isMobile && "h-6 w-6 bg-primary/10"
-                )}
-                onClick={() => handleEditStart(message)}
-                title="Modifica messaggio"
-              >
-                <PencilIcon className={cn("h-3.5 w-3.5 text-primary", isMobile && "h-3 w-3")} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "h-7 w-7 rounded-full hover:bg-primary/20",
-                  isMobile && "h-6 w-6 bg-primary/10"
-                )}
-                onClick={() => handleDeleteStart(message)}
-                title="Elimina messaggio"
-              >
-                <Trash2Icon className={cn("h-3.5 w-3.5 text-primary", isMobile && "h-3 w-3")} />
-              </Button>
             </div>
           </div>
         ))}
