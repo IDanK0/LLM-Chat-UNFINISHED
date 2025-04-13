@@ -63,33 +63,19 @@ function convertMessagesToLlamaFormat(messages: Message[], modelName: string): L
   
   const systemContent = `Sei un assistente AI italiano utile, preciso e amichevole. Oggi è ${formattedDate}. Rispondi in modo accurato e naturale.`;
   
-  // Identifica se stiamo usando un modello Gemma
-  const isGemmaModel = modelName === "Gemma 3 12b it Instruct" || modelName === "gemma-3-12b-it";
-  
   let result: LlamaMessage[] = [];
   
-  if (isGemmaModel) {
-    // Per Gemma, iniziamo direttamente con i messaggi user/assistant
-    // Il primo messaggio deve essere dell'utente
-    for (const message of messages) {
-      result.push({
-        role: message.isUserMessage ? 'user' : 'assistant',
-        content: message.content
-      });
-    }
-  } else {
-    // Per modelli come Llama, utilizziamo il formato standard con messaggio di sistema
+  // Per tutti i modelli, utilizziamo il formato standard con messaggio di sistema
+  result.push({
+    role: 'system',
+    content: systemContent
+  });
+  
+  for (const message of messages) {
     result.push({
-      role: 'system',
-      content: systemContent
+      role: message.isUserMessage ? 'user' : 'assistant',
+      content: message.content
     });
-    
-    for (const message of messages) {
-      result.push({
-        role: message.isUserMessage ? 'user' : 'assistant',
-        content: message.content
-      });
-    }
   }
   
   return result;
@@ -132,46 +118,65 @@ export async function generateAIResponse(
     // Log della richiesta per debug
     console.log(`Request body:`, JSON.stringify(requestBody, null, 2));
     
-    // Configura il timeout per la richiesta
+    // Configura il timeout per la richiesta - Usa un timeout più lungo per modelli che potrebbero essere più lenti
+    const isLargeModel = apiModelName.includes("12b") || apiModelName.includes("70b");
+    const timeoutDuration = isLargeModel ? ServerConfig.API_TIMEOUT * 2 : ServerConfig.API_TIMEOUT;
+    console.log(`Setting timeout to ${timeoutDuration}ms for model ${apiModelName}`);
+    
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), ServerConfig.API_TIMEOUT);
+    const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
     
-    // Esegui la richiesta
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(requestBody),
-      signal: controller.signal
-    });
-    
-    // Pulisci il timeout
-    clearTimeout(timeoutId);
-    
-    // Verifica se la richiesta ha avuto successo
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`API response error: ${response.status} ${response.statusText} - ${errorText}`);
+    try {
+      // Esegui la richiesta
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal
+      });
+      
+      // Pulisci il timeout
+      clearTimeout(timeoutId);
+      
+      // Verifica se la richiesta ha avuto successo
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API response error: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+      
+      // Ottieni la risposta JSON
+      const data = await response.json();
+      
+      // Estrai il contenuto della risposta
+      let content = data.choices && data.choices[0]?.message?.content;
+      
+      // Se non c'è contenuto, restituisci un messaggio di errore
+      if (!content) {
+        throw new Error("No content in API response");
+      }
+      
+      // Salva la risposta nella cache
+      responseCache.set(cacheKey, content);
+      
+      return content;
+    } catch (fetchError) {
+      // Pulizia del timeout in caso di errore
+      clearTimeout(timeoutId);
+      throw fetchError;
     }
-    
-    // Ottieni la risposta JSON
-    const data = await response.json();
-    
-    // Estrai il contenuto della risposta
-    let content = data.choices && data.choices[0]?.message?.content;
-    
-    // Se non c'è contenuto, restituisci un messaggio di errore
-    if (!content) {
-      throw new Error("No content in API response");
-    }
-    
-    // Salva la risposta nella cache
-    responseCache.set(cacheKey, content);
-    
-    return content;
   } catch (error) {
     console.error('Error generating AI response:', error);
+    
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      return `Mi dispiace, la generazione della risposta sta richiedendo troppo tempo. Il modello "${modelName}" potrebbe essere momentaneamente sovraccarico. Puoi attendere qualche minuto e riprovare o selezionare un modello più piccolo.`;
+    }
+    
+    // Errore più dettagliato per aiutare nel debugging
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`Detailed error for model ${modelName}: ${errorMessage}`);
+    
     return `Mi dispiace, ma al momento non riesco a generare una risposta. Riprova con un altro modello o contatta l'assistenza.`;
   }
 }
@@ -193,31 +198,17 @@ export async function improveText(
     
     console.log(`Improving text with model: ${apiModelName} at URL: ${apiUrl}`);
     
-    // Crea messaggi per il miglioramento del prompt
-    let messages: LlamaMessage[] = [];
-    
-    // Gestisci in modo diverso i messaggi per Gemma vs altri modelli
-    if (apiModelName === "gemma-3-12b-it") {
-      // Per Gemma, usa solo messaggi utente senza sistema
-      messages = [
-        {
-          role: 'user',
-          content: `Sei un esperto di prompt engineering. Il tuo compito è riscrivere il prompt fornito dall'utente in modo che sia più chiaro, dettagliato e strutturato, con l'obiettivo di ottenere risposte più precise e pertinenti da un modello di intelligenza artificiale. Restituisci esclusivamente la versione ottimizzata del prompt, senza aggiungere spiegazioni o testo aggiuntivo. Ecco il testo da migliorare: "${text}"`
-        }
-      ];
-    } else {
-      // Per altri modelli, usa il formato standard con messaggio di sistema
-      messages = [
-        {
-          role: 'system',
-          content: `Sei un esperto di prompt engineering. Il tuo compito è riscrivere il prompt fornito dall'utente in modo che sia più chiaro, dettagliato e strutturato, con l'obiettivo di ottenere risposte più precise e pertinenti da un modello di intelligenza artificiale. Restituisci esclusivamente la versione ottimizzata del prompt, senza aggiungere spiegazioni o testo aggiuntivo.`
-        },
-        {
-          role: 'user',
-          content: text
-        }
-      ];
-    }
+    // Crea messaggi per il miglioramento del prompt - tutti i modelli usano lo stesso formato
+    const messages: LlamaMessage[] = [
+      {
+        role: 'system',
+        content: `Sei un esperto di prompt engineering. Il tuo compito è riscrivere il prompt fornito dall'utente in modo che sia più chiaro, dettagliato e strutturato, con l'obiettivo di ottenere risposte più precise e pertinenti da un modello di intelligenza artificiale. Restituisci esclusivamente la versione ottimizzata del prompt, senza aggiungere spiegazioni o testo aggiuntivo.`
+      },
+      {
+        role: 'user',
+        content: text
+      }
+    ];
     
     // Implementazione di cache per richieste ripetute
     const cacheKey = JSON.stringify({ text, model: apiModelName, action: 'improve' });
@@ -235,45 +226,60 @@ export async function improveText(
       max_tokens: settings?.maxTokens ?? 1000
     };
     
-    // Configura il timeout per la richiesta
+    // Configura il timeout per la richiesta - Usa un timeout più lungo per modelli che potrebbero essere più lenti
+    const isLargeModel = apiModelName.includes("12b") || apiModelName.includes("70b");
+    const timeoutDuration = isLargeModel ? ServerConfig.API_TIMEOUT * 2 : ServerConfig.API_TIMEOUT;
+    
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), ServerConfig.API_TIMEOUT);
+    const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
     
-    // Esegui la richiesta
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(requestBody),
-      signal: controller.signal
-    });
-    
-    // Pulisci il timeout
-    clearTimeout(timeoutId);
-    
-    // Verifica se la richiesta ha avuto successo
-    if (!response.ok) {
-      throw new Error(`API response error: ${response.status} ${response.statusText}`);
+    try {
+      // Esegui la richiesta
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal
+      });
+      
+      // Pulisci il timeout
+      clearTimeout(timeoutId);
+      
+      // Verifica se la richiesta ha avuto successo
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API response error: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+      
+      // Ottieni la risposta JSON
+      const data = await response.json();
+      
+      // Estrai il contenuto della risposta
+      let content = data.choices && data.choices[0]?.message?.content;
+      
+      // Se non c'è contenuto, restituisci un messaggio di errore
+      if (!content) {
+        throw new Error("No content in API response");
+      }
+      
+      // Salva la risposta nella cache
+      responseCache.set(cacheKey, content);
+      
+      return content;
+    } catch (fetchError) {
+      // Pulizia del timeout in caso di errore
+      clearTimeout(timeoutId);
+      throw fetchError;
     }
-    
-    // Ottieni la risposta JSON
-    const data = await response.json();
-    
-    // Estrai il contenuto della risposta
-    let content = data.choices && data.choices[0]?.message?.content;
-    
-    // Se non c'è contenuto, restituisci un messaggio di errore
-    if (!content) {
-      throw new Error("No content in API response");
-    }
-    
-    // Salva la risposta nella cache
-    responseCache.set(cacheKey, content);
-    
-    return content;
   } catch (error) {
     console.error('Error improving text:', error);
+    
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      return `Mi dispiace, il miglioramento del testo sta richiedendo troppo tempo. Il modello "${modelName}" potrebbe essere momentaneamente sovraccarico. Puoi attendere qualche minuto e riprovare o selezionare un modello più piccolo.`;
+    }
+    
     return `Mi dispiace, non sono riuscito a migliorare il testo. Errore: ${error instanceof Error ? error.message : String(error)}`;
   }
 }
