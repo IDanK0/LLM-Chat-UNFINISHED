@@ -51,6 +51,7 @@ function convertMessagesToLlamaFormat(messages: Message[]): LlamaMessage[] {
 
   return result;
 }
+
 export async function generateAIResponse(
   messages: Message[], 
   modelName = "Llama 3.1 8b Instruct",
@@ -64,7 +65,7 @@ export async function generateAIResponse(
     const apiModelName = MODEL_NAME_MAP[modelName] || "meta-llama-3.1-8b-instruct";
     
     // Usa l'URL dell'API dalle impostazioni o quello di default
-    const apiUrl = settings?.apiUrl || 'http://192.168.1.50:8080/v1/chat/completions';
+    const apiUrl = settings?.apiUrl || 'http://127.0.0.1:8080/v1/chat/completions';
     
     console.log(`Sending request to API with model: ${apiModelName}`);
     
@@ -99,6 +100,77 @@ export async function generateAIResponse(
   } catch (error) {
     console.error('Error generating AI response:', error);
     return 'Mi dispiace, ma al momento non riesco a generare una risposta. Riprova più tardi.';
+  }
+}
+
+// NUOVA FUNZIONE: Migliora il testo dell'utente tramite prompt engineering
+export async function improveText(
+  text: string,
+  modelName = "Llama 3.1 8b Instruct",
+  settings?: ApiRequestSettings
+): Promise<string> {
+  try {
+    if (!text || text.trim() === '') {
+      throw new Error('Il testo da migliorare non può essere vuoto');
+    }
+    
+    // Ottieni il nome del modello tecnico dalla mappa usando il nome UI o usa il default
+    const apiModelName = MODEL_NAME_MAP[modelName] || "meta-llama-3.1-8b-instruct";
+    
+    // Usa l'URL dell'API dalle impostazioni o quello di default
+    const apiUrl = settings?.apiUrl || 'http://127.0.0.1:8080/v1/chat/completions';
+    
+    console.log(`Improving text with model: ${apiModelName}`);
+    
+    // Crea messaggi per il miglioramento del prompt
+    const messages = [
+      {
+        role: 'system',
+        content: 'Sei un esperto di prompt engineering. Il tuo compito è migliorare il testo dell\'utente per renderlo più chiaro, specifico e strutturato per ottenere risposte migliori da un modello di AI. Rispondi solo con la versione migliorata del prompt, senza spiegazioni o altro testo.'
+      },
+      {
+        role: 'user',
+        content: text
+      }
+    ];
+    
+    // Implementazione di cache per richieste ripetute
+    const cacheKey = JSON.stringify({ text, model: apiModelName, action: 'improve' });
+    const cachedResponse = responseCache.get(cacheKey);
+    if (cachedResponse) {
+      console.log("Cache hit, returning cached improved text");
+      return cachedResponse;
+    }
+    
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: apiModelName,
+        messages: messages,
+        temperature: settings?.temperature ?? 0.7,
+        max_tokens: settings?.maxTokens ?? -1,
+        stream: false
+      })
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API response error: ${response.status} ${errorText}`);
+    }
+
+    const data = await response.json();
+    const improvedText = data.choices[0].message.content;
+    
+    // Memorizza nella cache
+    responseCache.set(cacheKey, improvedText);
+    
+    return improvedText;
+  } catch (error) {
+    console.error('Error improving text:', error);
+    throw error;
   }
 }
 

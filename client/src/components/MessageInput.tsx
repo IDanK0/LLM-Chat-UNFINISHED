@@ -17,7 +17,8 @@ import {
   PlusIcon,
   FileIcon,
   MoreHorizontalIcon,
-  PaperclipIcon
+  PaperclipIcon,
+  Wand2Icon // Aggiungo l'icona della bacchetta magica per il miglioramento del testo
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -43,6 +44,9 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
   // Gestione dell'upload di file
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  
+  // Stato per il miglioramento del testo
+  const [isImprovingText, setIsImprovingText] = useState(false);
   
   const { data: currentChat } = useQuery<Chat>({
     queryKey: [`/api/chats/${chatId}`],
@@ -109,9 +113,67 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
     }
   });
   
+  // Mutation per migliorare il testo usando l'endpoint del server
+  const improveTextMutation = useMutation({
+    mutationFn: async (textToImprove: string) => {
+      if (!textToImprove || textToImprove.trim() === "") {
+        throw new Error("Il testo è vuoto");
+      }
+      
+      // Usiamo l'endpoint del server invece di chiamare direttamente l'API
+      const response = await apiRequest("POST", "/api/improve-text", {
+        text: textToImprove,
+        modelName: selectedModel,
+        temperature: getSettings().temperature || 0.7
+      });
+      
+      return response.improvedText;
+    },
+    onSuccess: (improvedText) => {
+      // Imposta il testo migliorato nella casella di input
+      setMessage(improvedText);
+      
+      // Adatta l'altezza della textarea
+      const textarea = document.querySelector('textarea');
+      if (textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = `${Math.min(textarea.scrollHeight, isMobile ? 80 : 120)}px`;
+      }
+      
+      toast({
+        title: "Testo migliorato",
+        description: "Il contenuto è stato migliorato con successo.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Errore",
+        description: `Impossibile migliorare il testo: ${error instanceof Error ? error.message : "Errore sconosciuto"}`,
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      setIsImprovingText(false);
+    }
+  });
+  
+  // Funzione per migliorare il testo
+  const handleImproveText = () => {
+    if (message?.trim()) {
+      setIsImprovingText(true);
+      improveTextMutation.mutate(message);
+    } else {
+      toast({
+        title: "Input richiesto",
+        description: "Inserisci del testo da migliorare.",
+        variant: "destructive",
+      });
+    }
+  };
+  
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (message.trim()) {
+    if (message?.trim()) {
       const currentMessage = message;
       setMessage("");
       // Reset textarea height
@@ -128,7 +190,7 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
     // Enter senza Shift invia il messaggio
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (message.trim()) {
+      if (message?.trim()) {
         const currentMessage = message;
         setMessage("");
         e.currentTarget.style.height = isMobile ? '28px' : '36px';
@@ -221,6 +283,25 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
                   )} />
                 </Button>
                 
+                {/* NUOVO: Pulsante per migliorare il testo */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "rounded-full hover:bg-primary/20 transition-all duration-300",
+                    isMobile ? "h-6 w-6" : "h-7 w-7",
+                    isImprovingText && "animate-pulse bg-primary/20"
+                  )}
+                  onClick={handleImproveText}
+                  disabled={!message?.trim() || isImprovingText}
+                >
+                  <Wand2Icon className={cn(
+                    "text-white",
+                    isMobile ? "h-3 w-3" : "h-3.5 w-3.5"
+                  )} />
+                </Button>
+                
                 {/* Input nascosto per la selezione dei file */}
                 <input
                   type="file"
@@ -232,10 +313,11 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
               </div>
               
               <Textarea
-                placeholder="Come posso aiutarti oggi?"
+                placeholder={isImprovingText ? "Miglioramento in corso..." : "Come posso aiutarti oggi?"}
                 className={cn(
                   "flex-1 bg-transparent border-0 outline-none shadow-none focus-visible:ring-0 text-sm textarea-glow resize-none",
                   "py-1.5 min-h-[36px] transition-all duration-200 max-h-[120px] overflow-y-auto",
+                  isImprovingText && "opacity-70",
                   isMobile && "message-textarea py-1 min-h-[28px] max-h-[80px]"
                 )}
                 value={message}
@@ -246,6 +328,7 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
                 }}
                 onKeyDown={handleKeyDown}
                 rows={1}
+                disabled={isImprovingText}
               />
               <Button 
                 type="submit" 
@@ -254,7 +337,7 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
                   "rounded-full bg-primary hover:bg-primary/90 ml-1 transition-all duration-300 transform hover:scale-105",
                   isMobile ? "h-6 w-6" : "h-7 w-7"
                 )}
-                disabled={!message.trim() || sendMessageMutation.isPending}
+                disabled={!message?.trim() || sendMessageMutation.isPending || isImprovingText}
               >
                 <ArrowRightIcon className={isMobile ? "h-3 w-3" : "h-3.5 w-3.5"} />
               </Button>
@@ -262,7 +345,7 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
           </div>
         </form>
 
-        {/* Menu a dropdown per dispositivi mobili - MIGLIORATO E RIDIMENSIONATO */}
+        {/* Menu a dropdown per dispositivi mobili */}
         {isMobile && (
           <div className="flex justify-center mt-1 suggestions-container">
             <DropdownMenu>
