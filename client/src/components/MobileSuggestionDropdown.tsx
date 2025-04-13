@@ -37,10 +37,10 @@ export const MobileSuggestionDropdown: React.FC<MobileSuggestionDropdownProps> =
         >
           <DropdownMenuItem 
             className="text-white hover:bg-primary/20 focus:bg-primary/20 rounded-lg py-1.5 text-xs"
-            onClick={() => insertTemplate("Puoi generare un'immagine di un gatto che suona il pianoforte?")}
+            onClick={() => insertTemplate("Descrivi la seguente immagine allegata.")}
           >
             <ImageIcon className="h-3 w-3 mr-2 text-primary" />
-            <span>Crea immagine</span>
+            <span>Descrivi immagine</span>
           </DropdownMenuItem>
           <DropdownMenuItem 
             className="text-white hover:bg-primary/20 focus:bg-primary/20 rounded-lg py-1.5 text-xs"

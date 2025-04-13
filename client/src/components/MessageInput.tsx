@@ -4,6 +4,7 @@ import { useMessageInput } from "./hooks/useMessageInput";
 import { MessageForm } from "./MessageForm";
 import { MobileSuggestionDropdown } from "./MobileSuggestionDropdown";
 import { DesktopSuggestionButtons } from "./DesktopSuggestionButtons";
+import { MessageActions } from "./MessageActions";
 
 interface MessageInputProps {
   chatId: string;
@@ -54,12 +55,28 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
           ref={textareaRef}
         />
 
-        {/* Menu a dropdown per dispositivi mobili */}
+        {/* Contenitore per i pulsanti mobili che appaiono sotto la textbox */}
         {isMobile && (
-          <MobileSuggestionDropdown 
-            insertTemplate={insertTemplate}
-            setWebSearchEnabled={setWebSearchEnabled}
-          />
+          <div className="flex items-center justify-center mt-1 space-x-2">
+            {/* Mobile Message Actions (pulsanti ricerca, allegati, improving) */}
+            <div className="flex items-center">
+              <MessageActions
+                isMobile={isMobile}
+                webSearchEnabled={webSearchEnabled}
+                toggleWebSearch={toggleWebSearch}
+                handleAttachFile={handleAttachFile}
+                handleImproveText={handleImproveText}
+                isImprovingText={isImprovingText}
+                hasMessageContent={!!message?.trim()}
+              />
+            </div>
+            
+            {/* Menu a dropdown per suggerimenti su dispositivi mobili */}
+            <MobileSuggestionDropdown 
+              insertTemplate={insertTemplate}
+              setWebSearchEnabled={setWebSearchEnabled}
+            />
+          </div>
         )}
 
         {/* Bottoni visibili solo su schermi grandi */}

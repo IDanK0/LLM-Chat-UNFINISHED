@@ -40,21 +40,24 @@ export const MessageForm = forwardRef<HTMLTextAreaElement, MessageFormProps>(({
     <form onSubmit={onSubmit}>
       <div className="bg-[#101c38] border border-primary/30 rounded-xl shadow-lg transition-all duration-300 ease-in-out">
         <div className="flex items-center p-1.5">
-          <MessageActions
-            isMobile={isMobile}
-            webSearchEnabled={webSearchEnabled}
-            toggleWebSearch={toggleWebSearch}
-            handleAttachFile={handleAttachFile}
-            handleImproveText={handleImproveText}
-            isImprovingText={isImprovingText}
-            hasMessageContent={!!message?.trim()}
-          />
+          {/* Mostra MessageActions solo su desktop */}
+          {!isMobile && (
+            <MessageActions
+              isMobile={isMobile}
+              webSearchEnabled={webSearchEnabled}
+              toggleWebSearch={toggleWebSearch}
+              handleAttachFile={handleAttachFile}
+              handleImproveText={handleImproveText}
+              isImprovingText={isImprovingText}
+              hasMessageContent={!!message?.trim()}
+            />
+          )}
           
           <Textarea
             placeholder={isImprovingText ? "Miglioramento in corso..." : "Come posso aiutarti oggi?"}
             className={cn(
               "flex-1 bg-transparent border-0 outline-none shadow-none focus-visible:ring-0 text-sm textarea-glow resize-none",
-              "py-1.5 min-h-[36px] transition-all duration-200 max-h-[120px] overflow-y-auto",
+              "py-2.5 min-h-[36px] transition-all duration-200 max-h-[120px] overflow-y-auto flex items-center justify-center",
               isImprovingText && "opacity-70",
               isMobile && "message-textarea py-1 min-h-[28px] max-h-[80px]"
             )}
@@ -64,6 +67,7 @@ export const MessageForm = forwardRef<HTMLTextAreaElement, MessageFormProps>(({
             rows={1}
             disabled={isImprovingText}
             ref={ref}
+            style={{ display: "flex", alignItems: "center" }}
           />
           
           <Button 
