@@ -78,20 +78,28 @@
   padding-bottom: 0.25rem !important;
 }
 
-/* Bottoni azioni messaggi su mobile - migliorato allineamento */
+/* Bottoni azioni messaggi su mobile - allineamento corretto come su desktop */
 .mobile-device .message-actions {
   opacity: 1 !important;
   display: flex !important;
   justify-content: flex-end !important;
   margin-top: 0.25rem !important;
-  margin-right: 0.25rem !important;  /* Aggiunto per allineare meglio i pulsanti */
+  margin-right: 0.25rem !important;
 }
 
+/* Rimuovo le dimensioni fisse per i pulsanti e li configuro per comportarsi come su desktop */
 .mobile-device .message-actions button {
-  height: 28px !important;
-  width: 28px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   padding: 0 !important;
-  margin-left: 0.25rem !important;  /* Aggiunto per migliorare lo spazio tra i pulsanti */
+  margin-left: 0.25rem !important;
+}
+
+/* Assicura che le icone nei bottoni siano allineate come su desktop */
+.mobile-device button svg {
+  margin: 0 !important;
+  display: inline-block !important;
 }
 
 /* Dialoghi ottimizzati per mobile */
@@ -129,11 +137,6 @@
 /* Riduzione margini nei dialoghi su mobile */
 .mobile-device .dialog-footer {
   margin-top: 0.5rem !important;
-}
-
-/* Assicura che le icone nei bottoni siano centrate su mobile */
-.mobile-device button svg {
-  margin: auto !important;
 }
 
 /* Riduce lo spazio tra avatar e testo nei messaggi su mobile */
