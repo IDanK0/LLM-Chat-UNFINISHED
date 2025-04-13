@@ -208,7 +208,7 @@ export async function improveText(
       messages = [
         {
           role: 'user',
-          content: `Sei un esperto di prompt engineering. Il tuo compito è migliorare il testo che ti invierò per renderlo più chiaro, specifico e strutturato. Rispondi solo con la versione migliorata del prompt, senza spiegazioni o altro testo. Ecco il testo da migliorare: "${text}"`
+          content: `Sei un esperto di prompt engineering. Il tuo compito è riscrivere il prompt fornito dall’utente in modo che sia più chiaro, dettagliato e strutturato, con l’obiettivo di ottenere risposte più precise e pertinenti da un modello di intelligenza artificiale. Restituisci esclusivamente la versione ottimizzata del prompt, senza aggiungere spiegazioni o testo aggiuntivo. Ecco il testo da migliorare: "${text}"`
         }
       ];
     } else {
@@ -216,7 +216,7 @@ export async function improveText(
       messages = [
         {
           role: 'system',
-          content: 'Sei un esperto di prompt engineering. Il tuo compito è migliorare il testo dell\'utente per renderlo più chiaro, specifico e strutturato per ottenere risposte migliori da un modello di AI. Rispondi solo con la versione migliorata del prompt, senza spiegazioni o altro testo.'
+          content: 'Sei un esperto di prompt engineering. Il tuo compito è riscrivere il prompt fornito dall’utente in modo che sia più chiaro, dettagliato e strutturato, con l’obiettivo di ottenere risposte più precise e pertinenti da un modello di intelligenza artificiale. Restituisci esclusivamente la versione ottimizzata del prompt, senza aggiungere spiegazioni o testo aggiuntivo.'
         },
         {
           role: 'user',
