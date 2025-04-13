@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Message, Chat } from "@/lib/types";
 import { getSettings } from "@/lib/settingsStore";
 import { cn } from "@/lib/utils";
+// Importo la funzione regenerateChatTitle dal nuovo file titleGenerator
+import { regenerateChatTitle } from "@/lib/titleGenerator";
 import { 
   ImageIcon, 
   Code2Icon, 
@@ -41,6 +43,7 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
   const processedChatsRef = useRef<Record<string, number>>({});
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const titleProcessedRef = useRef(false); // Nuovo ref per tracciare se il titolo è già stato generato
   
   // Gestione dell'upload di file
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -58,6 +61,11 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
     queryKey: [`/api/chats/${chatId}/messages`],
     enabled: !!chatId,
   });
+
+  // Reset il flag quando cambia la chat
+  useEffect(() => {
+    titleProcessedRef.current = false;
+  }, [chatId]);
 
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
@@ -109,8 +117,54 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
       setMessage("");
       setAttachedFile(null);
       
-      // Aggiorna i messaggi
-      await queryClient.invalidateQueries({ queryKey: [`/api/chats/${chatId}/messages`] });
+      try {
+        // Aggiorna i messaggi
+        await queryClient.invalidateQueries({ queryKey: [`/api/chats/${chatId}/messages`] });
+        
+        // Controlla se abbiamo già elaborato questa chat
+        if (!titleProcessedRef.current && currentChat && currentChat.title === "Nuova Chat") {
+          console.log("[MessageInput] Verifico se è necessario generare un titolo per la chat");
+          
+          // Ottieni messaggi aggiornati
+          const updatedMessages = await queryClient.fetchQuery<Message[]>({
+            queryKey: [`/api/chats/${chatId}/messages`],
+          });
+          
+          // Filtra solo i messaggi utente (escludi quelli dell'AI)
+          const userMessages = updatedMessages.filter(msg => msg.isUserMessage);
+          console.log(`[MessageInput] Messaggi utente trovati: ${userMessages.length}`);
+          
+          // Se ci sono esattamente 1 messaggio utente, genera il titolo
+          if (userMessages.length === 1) {
+            console.log("[MessageInput] Primo messaggio utente rilevato, avvio generazione titolo");
+            titleProcessedRef.current = true; // Imposta il flag per evitare generazioni multiple
+            
+            // Ottieni le impostazioni correnti
+            const apiSettings = getSettings();
+            
+            // Attendi un po' per assicurarti che il messaggio sia stato salvato completamente
+            setTimeout(async () => {
+              // Passa il modello selezionato e le impostazioni alla funzione di generazione del titolo
+              const success = await regenerateChatTitle(chatId, {
+                modelName: selectedModel,
+                temperature: apiSettings.temperature || 0.7,
+                apiKey: apiSettings.apiKey,
+                apiUrl: apiSettings.apiUrl || "",
+                apiVersion: apiSettings.apiVersion || ""
+              });
+              
+              if (success) {
+                // Aggiorna la query cache per riflettere il nuovo titolo
+                await queryClient.invalidateQueries({ queryKey: [`/api/chats/${chatId}`] });
+                await queryClient.invalidateQueries({ queryKey: ["/api/chats"] });
+                console.log("[MessageInput] Titolo generato e cache aggiornata");
+              }
+            }, 800);
+          }
+        }
+      } catch (error) {
+        console.error("[MessageInput] Errore durante l'elaborazione post-invio:", error);
+      }
     }
   });
   
@@ -123,11 +177,14 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
       
       console.log("Invio richiesta per migliorare:", textToImprove);
       
+      // Ottieni le impostazioni correnti
+      const apiSettings = getSettings();
+      
       // Usiamo l'endpoint del server invece di chiamare direttamente l'API
       const response = await apiRequest("POST", "/api/improve-text", {
         text: textToImprove,
         modelName: selectedModel,
-        temperature: getSettings().temperature || 0.7
+        temperature: apiSettings.temperature || 0.7
       });
       
       // MODIFICA: Estrai il corpo JSON dalla risposta prima di elaborarlo
@@ -460,10 +517,10 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
             <Button 
               variant="outline" 
               className="bg-[#101c38] hover:bg-primary/20 border-primary/20 text-sm h-8 rounded-xl transition-all duration-300 transform hover:scale-105"
-              onClick={() => setMessage("Puoi generare un'immagine di un gatto che suona il pianoforte?")}
+              onClick={() => setMessage("Descrivi la seguente immagine allegata.")}
             >
               <ImageIcon className="h-4 w-4 mr-2 text-primary" />
-              <span className="text-white/90">Crea immagine</span>
+              <span className="text-white/90">Descrivi immagine</span>
             </Button>
             <Button 
               variant="outline" 
