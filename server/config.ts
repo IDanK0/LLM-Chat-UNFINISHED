@@ -7,7 +7,7 @@ export const ServerConfig = {
   DEFAULT_API_URL: 'http://127.0.0.1:8080/v1/chat/completions',
   
   // Altre configurazioni server possono essere aggiunte qui
-  API_TIMEOUT: 180000, // aumentato a 180 secondi (era 30000)
+  API_TIMEOUT: 3600000, // aumentato a 60 minuti
   
   // Mappa dei modelli importata dalla configurazione condivisa
   MODEL_NAME_MAP

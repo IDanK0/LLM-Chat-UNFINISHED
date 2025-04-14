@@ -227,7 +227,7 @@ export async function improveText(
     };
     
     // Configura il timeout per la richiesta - Usa un timeout più lungo per modelli che potrebbero essere più lenti
-    const isLargeModel = apiModelName.includes("12b") || apiModelName.includes("70b");
+    const isLargeModel = apiModelName.includes("12b") || apiModelName.includes("32b");
     const timeoutDuration = isLargeModel ? ServerConfig.API_TIMEOUT * 2 : ServerConfig.API_TIMEOUT;
     
     const controller = new AbortController();

@@ -13,7 +13,13 @@ export function isDefaultTitle(title: string): boolean {
  * Genera un titolo per la chat basato sul primo messaggio dell'utente
  * e aggiorna la chat con il nuovo titolo
  */
-export async function regenerateChatTitle(chatId: string): Promise<boolean> {
+export async function regenerateChatTitle(chatId: string, options?: {
+  modelName?: string;
+  temperature?: number;
+  apiKey?: string;
+  apiUrl?: string;
+  apiVersion?: string;
+}): Promise<boolean> {
   try {
     console.log(`[TitleGenerator] Avvio generazione titolo per chat ${chatId}`);
     
@@ -60,13 +66,20 @@ export async function regenerateChatTitle(chatId: string): Promise<boolean> {
       console.log("[TitleGenerator] Tentativo con endpoint improve-text");
       const response = await apiRequest("POST", "/api/improve-text", {
         text: `Crea un titolo brevissimo (massimo 3 parole) per questo messaggio senza usare virgolette o formattazione del testo: "${firstUserMessage.content.substring(0, 100)}"`,
-        modelName: settings.model || "meta-llama-3.1-8b-instruct",
-        temperature: 0.5
+        modelName: options?.modelName || "meta-llama-3.1-8b-instruct", // Usa il modello passato nelle opzioni
+        temperature: options?.temperature || 0.5
       });
       
       const data = await response.json();
       if (data && data.improvedText && typeof data.improvedText === 'string') {
-        title = data.improvedText.trim();
+        // Filtra eventuali tag <think> e </think> e il contenuto tra essi
+        let improvedText = data.improvedText.trim();
+        
+        // Filtra i tag di pensiero e il loro contenuto per modelli come deepseek r1
+        const thinkRegex = /<think>[\s\S]*?<\/think>/g;
+        improvedText = improvedText.replace(thinkRegex, '').trim();
+        
+        title = improvedText;
       } else {
         throw new Error("Formato risposta non valido");
       }

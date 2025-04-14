@@ -19,6 +19,10 @@ export const availableModels: ModelConfig[] = [
   {
     displayName: "Deepseek R1 Distill Llama 8b",
     apiName: "deepseek-r1-distill-llama-8b"
+  },
+  {
+    displayName: "QwQ 32b",
+    apiName: "qwq-32b"
   }
   // Per aggiungere un nuovo modello, basta inserire una nuova voce qui
 ];
