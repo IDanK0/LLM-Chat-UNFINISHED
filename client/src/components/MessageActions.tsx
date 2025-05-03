@@ -11,6 +11,7 @@ interface MessageActionsProps {
   handleImproveText: () => void;
   isImprovingText: boolean;
   hasMessageContent: boolean;
+  modelSupportsImages: boolean; // Nuova proprietà
 }
 
 export const MessageActions: React.FC<MessageActionsProps> = ({
@@ -20,7 +21,8 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
   handleAttachFile,
   handleImproveText,
   isImprovingText,
-  hasMessageContent
+  hasMessageContent,
+  modelSupportsImages // Usiamo questa proprietà
 }) => {
   return (
     <div className="flex items-center space-x-1 mr-1">
@@ -47,6 +49,9 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
           isMobile ? "h-6 w-6" : "h-7 w-7"
         )}
         onClick={handleAttachFile}
+        title={modelSupportsImages 
+          ? "Allega file o immagini" 
+          : "Allega file (questo modello non supporta immagini)"}
       >
         <PaperclipIcon className={cn(
           "text-white",

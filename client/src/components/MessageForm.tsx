@@ -19,6 +19,7 @@ interface MessageFormProps {
   fileInputRef: React.RefObject<HTMLInputElement>;
   onFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
   isPending: boolean;
+  modelSupportsImages: boolean; // Nuova proprietà
 }
 
 export const MessageForm = forwardRef<HTMLTextAreaElement, MessageFormProps>(({
@@ -34,7 +35,8 @@ export const MessageForm = forwardRef<HTMLTextAreaElement, MessageFormProps>(({
   isMobile,
   fileInputRef,
   onFileSelect,
-  isPending
+  isPending,
+  modelSupportsImages // Usiamo questa proprietà
 }, ref) => {
   return (
     <form onSubmit={onSubmit}>
@@ -50,6 +52,7 @@ export const MessageForm = forwardRef<HTMLTextAreaElement, MessageFormProps>(({
               handleImproveText={handleImproveText}
               isImprovingText={isImprovingText}
               hasMessageContent={!!message?.trim()}
+              modelSupportsImages={modelSupportsImages} // Passiamo questa proprietà
             />
           )}
           
@@ -90,7 +93,9 @@ export const MessageForm = forwardRef<HTMLTextAreaElement, MessageFormProps>(({
         ref={fileInputRef}
         onChange={onFileSelect}
         className="hidden"
-        accept="image/*,.pdf,.doc,.docx,.txt"
+        accept={modelSupportsImages 
+          ? "image/*,.pdf,.doc,.docx,.txt" 
+          : ".pdf,.doc,.docx,.txt"}
       />
     </form>
   );

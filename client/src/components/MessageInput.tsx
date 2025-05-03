@@ -20,6 +20,7 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
     isImprovingText,
     textareaRef,
     fileInputRef,
+    currentModelSupportsImages, // Nuova proprietà da useMessageInput
     handleTextareaChange,
     handleKeyDown,
     handleSendMessage,
@@ -52,6 +53,7 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
           fileInputRef={fileInputRef}
           onFileSelect={handleFileSelect}
           isPending={sendMessageMutation.isPending}
+          modelSupportsImages={currentModelSupportsImages} // Passiamo questa proprietà
           ref={textareaRef}
         />
 
@@ -68,6 +70,7 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
                 handleImproveText={handleImproveText}
                 isImprovingText={isImprovingText}
                 hasMessageContent={!!message?.trim()}
+                modelSupportsImages={currentModelSupportsImages} // Passiamo questa proprietà
               />
             </div>
             

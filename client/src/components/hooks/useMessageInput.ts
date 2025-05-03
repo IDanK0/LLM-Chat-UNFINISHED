@@ -7,6 +7,7 @@ import { getSettings } from "@/lib/settingsStore";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { regenerateChatTitle } from "@/lib/titleGenerator";
+import { modelSupportsImages } from "@/lib/modelConfig"; // Nuova importazione
 
 interface UseMessageInputProps {
   chatId: string;
@@ -24,6 +25,9 @@ export function useMessageInput({ chatId, selectedModel }: UseMessageInputProps)
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [isImprovingText, setIsImprovingText] = useState(false);
+  
+  // Verifica se il modello corrente supporta le immagini
+  const currentModelSupportsImages = modelSupportsImages(selectedModel);
 
   const { data: currentChat } = useQuery<Chat>({
     queryKey: [`/api/chats/${chatId}`],
@@ -290,6 +294,21 @@ export function useMessageInput({ chatId, selectedModel }: UseMessageInputProps)
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Controlla se il file è un'immagine
+      const isImage = file.type.startsWith('image/');
+      
+      // Se è un'immagine ma il modello non supporta le immagini, mostra errore
+      if (isImage && !currentModelSupportsImages) {
+        toast({
+          title: "Immagine non supportata",
+          description: "Il modello selezionato non supporta l'elaborazione di immagini",
+          variant: "destructive",
+        });
+        // Reset dell'input file
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
+      
       setAttachedFile(file);
       toast({
         title: "File allegato",
@@ -327,6 +346,7 @@ export function useMessageInput({ chatId, selectedModel }: UseMessageInputProps)
     textareaRef,
     fileInputRef,
     attachedFile,
+    currentModelSupportsImages, // Esponiamo questa nuova proprietà
     handleTextareaChange,
     handleKeyDown,
     handleSendMessage,
