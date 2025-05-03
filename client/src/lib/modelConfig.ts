@@ -9,20 +9,24 @@ export interface ModelConfig {
 // Array di tutti i modelli disponibili
 export const availableModels: ModelConfig[] = [
   {
-    displayName: "Llama 3.1 8b Instruct",
-    apiName: "meta-llama-3.1-8b-instruct"
+    displayName: "Qwen3 0.6b",
+    apiName: "qwen3-0.6b"
   },
   {
-    displayName: "Gemma 3 12b it",
-    apiName: "gemma-3-12b-it"
+    displayName: "Qwen3 4b",
+    apiName: "qwen3-4b"
   },
   {
     displayName: "Deepseek R1 Distill Llama 8b",
     apiName: "deepseek-r1-distill-llama-8b"
   },
   {
-    displayName: "QwQ 32b",
-    apiName: "qwq-32b"
+    displayName: "Llama 3.1 8b Instruct",
+    apiName: "meta-llama-3.1-8b-instruct"
+  },
+  {
+    displayName: "Gemma 3 12b it",
+    apiName: "gemma-3-12b-it-qat"
   }
   // Per aggiungere un nuovo modello, basta inserire una nuova voce qui
 ];
