@@ -67,7 +67,7 @@ export async function regenerateChatTitle(chatId: string, options?: {
       const response = await apiRequest("POST", "/api/improve-text", {
         text: `Crea un titolo brevissimo (massimo 3 parole) per questo messaggio senza usare virgolette o formattazione del testo: "${firstUserMessage.content.substring(0, 100)}"`,
         modelName: options?.modelName || "meta-llama-3.1-8b-instruct", // Usa il modello passato nelle opzioni
-        temperature: options?.temperature || 0.5
+        temperature: options?.temperature || 0.7
       });
       
       const data = await response.json();

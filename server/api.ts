@@ -87,38 +87,66 @@ export async function generateAIResponse(
   settings?: ApiRequestSettings
 ): Promise<string> {
   try {
+    if (!messages || messages.length === 0) {
+      return "Non ci sono messaggi da elaborare.";
+    }
+    
     // Ottieni il nome del modello tecnico dalla funzione helper
     const apiModelName = getApiModelName(modelName);
-    
-    // Converti i messaggi nel formato richiesto dall'API in base al modello
-    const formattedMessages = convertMessagesToLlamaFormat(messages, modelName);
     
     // Usa l'URL dell'API dalle impostazioni o quello di default dalla configurazione centralizzata
     const apiUrl = settings?.apiUrl || ServerConfig.DEFAULT_API_URL;
     
-    console.log(`Sending request to API at ${apiUrl} with model: ${apiModelName}`);
-    console.log(`Formatted messages:`, JSON.stringify(formattedMessages, null, 2));
+    console.log(`Generating response using model: ${apiModelName} at ${apiUrl}`);
+    
+    // Prepara il contesto della conversazione come testo
+    let conversationText = "### Conversazione:\n\n";
+    
+    // Estrai gli ultimi messaggi per mantenere la richiesta più leggera
+    const recentMessages = messages.slice(-6);
+    
+    // Formatta la conversazione come testo
+    for (const message of recentMessages) {
+      const role = message.isUserMessage ? "Utente" : "Assistente";
+      conversationText += `${role}: ${message.content.trim()}\n\n`;
+    }
+    
+    // Aggiungi una richiesta esplicita per la risposta
+    conversationText += "### Istruzioni:\nRispondi come faresti se fossi l'assistente nella conversazione sopra riportata. Fornisci SOLO la risposta, senza prefissi come 'Assistente:'.";
     
     // Implementazione di cache per richieste ripetute
-    const cacheKey = JSON.stringify({ messages: formattedMessages, model: apiModelName });
+    const cacheKey = JSON.stringify({ conversation: conversationText, model: apiModelName });
     const cachedResponse = responseCache.get(cacheKey);
     if (cachedResponse) {
       console.log("Using cached response");
       return cachedResponse;
     }
     
-    // Crea il corpo della richiesta
+    // Crea messaggi con lo stesso formato di improveText che sappiamo funzionare
+    const adaptedMessages: LlamaMessage[] = [
+      {
+        role: 'system',
+        content: `Sei un assistente AI italiano utile, preciso e amichevole. Il tuo compito è fornire la prossima risposta dell'assistente nella conversazione. Rispondi in modo naturale e appropriato al contesto della conversazione.`
+      },
+      {
+        role: 'user',
+        content: conversationText
+      }
+    ];
+    
+    // Crea il corpo della richiesta usando lo stesso formato di improveText
     const requestBody = {
       model: apiModelName,
-      messages: formattedMessages,
+      messages: adaptedMessages,
       temperature: settings?.temperature ?? 0.7,
-      max_tokens: settings?.maxTokens ?? 1000
+      max_tokens: settings?.maxTokens ?? -1, // Usa -1 come in improveText
+      stream: false // Esplicitamente impostato a false
     };
     
     // Log della richiesta per debug
-    console.log(`Request body:`, JSON.stringify(requestBody, null, 2));
+    console.log(`Request body (simplified):`, JSON.stringify(requestBody).substring(0, 500) + "...");
     
-    // Configura il timeout per la richiesta - Usa un timeout più lungo per modelli che potrebbero essere più lenti
+    // Configura il timeout per la richiesta
     const isLargeModel = apiModelName.includes("12b") || apiModelName.includes("70b");
     const timeoutDuration = isLargeModel ? ServerConfig.API_TIMEOUT * 2 : ServerConfig.API_TIMEOUT;
     console.log(`Setting timeout to ${timeoutDuration}ms for model ${apiModelName}`);
@@ -127,7 +155,7 @@ export async function generateAIResponse(
     const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
     
     try {
-      // Esegui la richiesta
+      // Esegui la richiesta con gli stessi header e parametri di improveText
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
@@ -156,6 +184,9 @@ export async function generateAIResponse(
       if (!content) {
         throw new Error("No content in API response");
       }
+      
+      // Pulizia della risposta - rimuovi prefissi come "Assistente:" se presenti
+      content = content.replace(/^(Assistente|Assistant):\s*/i, '').trim();
       
       // Salva la risposta nella cache
       responseCache.set(cacheKey, content);
@@ -223,7 +254,8 @@ export async function improveText(
       model: apiModelName,
       messages: messages,
       temperature: settings?.temperature ?? 0.7,
-      max_tokens: settings?.maxTokens ?? 1000
+      max_tokens: settings?.maxTokens ?? 1000,
+      stream: false
     };
     
     // Configura il timeout per la richiesta - Usa un timeout più lungo per modelli che potrebbero essere più lenti
