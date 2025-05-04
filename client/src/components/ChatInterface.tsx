@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import AnimatedText from "./AnimatedText";
+import MarkdownContent from "./MarkdownContent";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 // Define the Message type directly
@@ -176,13 +176,13 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
                     {message.content}
                   </p>
                 ) : (
-                  <AnimatedText
-                    text={message.content}
+                  <MarkdownContent
+                    content={message.content}
                     className={cn(
-                      "text-foreground leading-relaxed py-1",
+                      "text-foreground leading-tight pt-1 pb-0",
                       "text-white",
                       isMobile && "mobile-text",
-                      "pr-24" /* Added right padding to make space for the buttons */
+                      "pr-24" /* right padding for buttons */
                     )}
                   />
                 )}

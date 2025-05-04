@@ -13,18 +13,18 @@ interface MarkdownContentProps {
 
 const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, className }) => {
   return (
-    <div className={cn('markdown-renderer', className)}>
+    <div className={cn('markdown-renderer', 'message-content', className)}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkBreaks]}
         rehypePlugins={[rehypeRaw, rehypeSanitize]}
         components={{
-          h1: ({ node, ...props }) => <h1 className="text-2xl font-bold mt-4 mb-2" {...props} />,
-          h2: ({ node, ...props }) => <h2 className="text-xl font-bold mt-4 mb-2" {...props} />,
-          h3: ({ node, ...props }) => <h3 className="text-lg font-bold mt-3 mb-2" {...props} />,
-          h4: ({ node, ...props }) => <h4 className="text-base font-bold mt-3 mb-1" {...props} />,
-          h5: ({ node, ...props }) => <h5 className="text-base font-bold mt-2 mb-1" {...props} />,
-          h6: ({ node, ...props }) => <h6 className="text-sm font-bold mt-2 mb-1" {...props} />,
-          p: ({ node, ...props }) => <p className="my-2" {...props} />,
+          h1: ({ node, ...props }) => <h1 className="text-2xl font-bold !mt-0 !mb-0" {...props} />,
+          h2: ({ node, ...props }) => <h2 className="text-xl font-bold !mt-0 !mb-0" {...props} />,
+          h3: ({ node, ...props }) => <h3 className="text-lg font-bold !mt-0 !mb-0" {...props} />,
+          h4: ({ node, ...props }) => <h4 className="text-base font-bold !mt-0 !mb-0" {...props} />,
+          h5: ({ node, ...props }) => <h5 className="text-base font-bold !mt-0 !mb-0" {...props} />,
+          h6: ({ node, ...props }) => <h6 className="text-sm font-bold !mt-0 !mb-0" {...props} />,
+          p: ({ node, ...props }) => <p className="!m-0" {...props} />,
           a: ({ node, ...props }) => (
             <a 
               className="text-primary hover:underline" 
@@ -33,37 +33,38 @@ const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, className })
               {...props} 
             />
           ),
-          ul: ({ node, ...props }) => <ul className="list-disc ml-6 my-2" {...props} />,
-          ol: ({ node, ...props }) => <ol className="list-decimal ml-6 my-2" {...props} />,
-          li: ({ node, ...props }) => <li className="my-1" {...props} />,
+          ul: ({ node, ...props }) => <ul className="list-disc ml-6 !m-0" {...props} />,
+          ol: ({ node, ...props }) => <ol className="list-decimal ml-6 !m-0" {...props} />,
+          li: ({ node, ...props }) => <li className="!m-0" {...props} />,
           blockquote: ({ node, ...props }) => (
             <blockquote 
-              className="pl-4 border-l-4 border-primary/30 my-2 text-white/80 italic"
+              className="pl-4 border-l-4 border-primary/30 !m-0 text-white/80 italic"
               {...props} 
             />
           ),
-          code: ({ node, inline, className, children, ...props }) => {
+          code: (props) => {
+            const { node, inline, className, children, ...rest } = props as any;
             const match = /language-(\w+)/.exec(className || '');
             return !inline ? (
-              <pre className="bg-[rgba(0,0,0,0.3)] p-4 rounded-md my-3 overflow-auto">
+              <pre className="bg-[rgba(0,0,0,0.3)] p-4 rounded-md !m-0 overflow-auto">
                 <code
                   className={match ? `language-${match[1]}` : ''}
-                  {...props}
+                  {...rest}
                 >
                   {children}
                 </code>
               </pre>
             ) : (
               <code
-                className="bg-[rgba(255,255,255,0.1)] px-1.5 py-0.5 rounded text-white font-mono text-sm"
-                {...props}
+                className="bg-[rgba(255,255,255,0.1)] px-1 py-0 rounded text-white font-mono text-sm"
+                {...rest}
               >
                 {children}
               </code>
             );
           },
           table: ({ node, ...props }) => (
-            <div className="my-4 overflow-auto">
+            <div className="!m-0 overflow-auto">
               <table className="min-w-full border border-primary/20 rounded" {...props} />
             </div>
           ),
@@ -82,11 +83,11 @@ const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, className })
               {...props} 
             />
           ),
-          hr: ({ node, ...props }) => <hr className="my-4 border-primary/20" {...props} />,
+          hr: ({ node, ...props }) => <hr className="!m-0 border-primary/20" {...props} />,
           img: ({ node, alt, ...props }) => (
             <img 
               alt={alt} 
-              className="max-w-full h-auto rounded my-2" 
+              className="max-w-full h-auto rounded !m-0" 
               {...props} 
             />
           ),
@@ -94,6 +95,13 @@ const MarkdownContent: React.FC<MarkdownContentProps> = ({ content, className })
       >
         {content}
       </ReactMarkdown>
+      {/* Override any residual top/bottom margins on markdown children */}
+      <style>{`
+        .markdown-renderer * {
+          margin-top: 0 !important;
+          margin-bottom: 0 !important;
+        }
+      `}</style>
     </div>
   );
 };
