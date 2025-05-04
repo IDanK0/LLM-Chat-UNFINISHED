@@ -93,8 +93,13 @@ export async function extractKeywords(question: string, modelName?: string): Pro
       .filter((kw: string) => kw && typeof kw === 'string') // Make sure they are valid strings
       .map((kw: string) => kw.startsWith('#') ? kw : '#' + kw); // Add '#' if not present
     
-    logger.success(`Keywords extracted successfully: ${formattedKeywords.join(', ')}`);
-    return formattedKeywords.slice(0, MAX_QUERIES);
+    // Filter out any <think> tags from each keyword
+    const cleanedKeywords = formattedKeywords.map((kw: string) =>
+      kw.replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<\/?think>/g, '').trim()
+    );
+    
+    logger.success(`Keywords extracted successfully: ${cleanedKeywords.join(', ')}`);
+    return cleanedKeywords.slice(0, MAX_QUERIES);
     
   } catch (error) {
     logger.error("Error during intelligent keyword extraction:", error);
@@ -273,15 +278,23 @@ export function formatWikipediaResultsForAI(results: WikipediaSearchResult[]): s
     formattedResults += `   [Read the full article](${articleUrl})\n\n`;
   });
   
-  // Add explicit instructions for AI on how to cite sources
-  formattedResults += "### Citation Instructions\n\n";
-  formattedResults += "When using information from the results above, insert a numerical reference in the text, e.g. [1].\n\n";
-  formattedResults += "At the end of your response, add a 'Citations:' section with the list of numbered sources.\n\n";
-  formattedResults += "Example:\n\n";
-  formattedResults += "Fact X was confirmed in 2022 [1]. Additionally, according to other studies [2]...\n\n";
-  formattedResults += "Citations:\n";
-  formattedResults += "[1]: Wikipedia: First Article Title\n";
-  formattedResults += "[2]: Wikipedia: Second Article Title\n\n";
+  // Add citations section with clickable links and ensure at least 4 sources
+  formattedResults += "### Citations:\n";
+  // Build citation entries for each result
+  results.forEach((result, index) => {
+    const articleUrl = `${WIKIPEDIA_BASE_URL}${encodeURIComponent(result.key)}`;
+    formattedResults += `[${index + 1}]: [${result.title}](${articleUrl})\n`;
+  });
+  // If fewer than 4 citations, duplicate the last source until 4 total
+  const minCitations = 4;
+  if (results.length > 0 && results.length < minCitations) {
+    const last = results[results.length - 1];
+    const lastUrl = `${WIKIPEDIA_BASE_URL}${encodeURIComponent(last.key)}`;
+    for (let i = results.length; i < minCitations; i++) {
+      formattedResults += `[${i + 1}]: [${last.title}](${lastUrl})\n`;
+    }
+  }
+  formattedResults += "\n";
   
   logger.debug(`Formatted result: ${formattedResults.length} characters`);
   

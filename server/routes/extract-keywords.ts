@@ -31,8 +31,8 @@ router.post("/", async (req, res) => {
     
     // System prompt to extract keywords
     const prompt = `
-Analyze the following text and extract 2-4 main keywords or concepts.
-Return ONLY a JSON array of strings, without additional text and without <think></think> tags.
+Analyze the following text and extract 2-4 main keywords to search on Wikipedia for the best results.
+Return ONLY a JSON array of strings, without additional text.
 Example output: ["keyword1", "keyword2", "keyword3"]
 
 TEXT: "${text}"
@@ -55,7 +55,8 @@ TEXT: "${text}"
       // We use a simple regex compatible with ES2015
       const match = content.match(/\[([\s\S]*?)\]/);
       if (match) {
-        keywords = JSON.parse(match[0]);
+        // Parse JSON array of keywords
+        keywords = JSON.parse(match[0]) as string[];
       } else {
         // If it doesn't find an array, split the text by commas or lines
         keywords = content
@@ -67,8 +68,12 @@ TEXT: "${text}"
       // Make sure they are only non-empty strings
       keywords = keywords
         .filter((k: any) => k && typeof k === "string")
-        .map((k: string) => k.replace(/^["'`]|["'`]$/g, "").trim()) // Remove any quotes
-        .filter(Boolean);
+        // Remove surrounding quotes
+        .map((k: string) => k.replace(/^['"`]|['"`]$/g, "").trim())
+        // Remove any <think> tags and their content
+        .map((k: string) => k.replace(/<think>[\s\S]*?<\/think>/g, "").replace(/<\/?think>/g, "").trim())
+        // Remove empty results
+        .filter((k: string) => k.length > 0);
         
     } catch (parseError) {
       console.error("Error parsing keywords:", parseError);

@@ -137,7 +137,36 @@ export async function generateAIResponse(
     if (!messages || messages.length === 0) {
       return "There are no messages to process.";
     }
-    
+    // If web search is disabled, call the model directly with standard chat format
+    if (!settings?.webSearchEnabled) {
+      // Prepare messages for Llama
+      const llamaMessages = convertMessagesToLlamaFormat(messages, modelName);
+      const apiModelName = getApiModelName(modelName);
+      const apiUrl = settings?.apiUrl || ServerConfig.DEFAULT_API_URL;
+      console.log(`Generating response without web search using model: ${apiModelName}`);
+      const requestBody = {
+        model: apiModelName,
+        messages: llamaMessages,
+        temperature: settings?.temperature ?? 0.7,
+        max_tokens: -1,
+        stream: false
+      };
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody)
+      });
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`API error: ${response.status} ${response.statusText} - ${text}`);
+      }
+      const data = await response.json();
+      let content = data.choices?.[0]?.message?.content;
+      if (!content) throw new Error('No content in API response');
+      // Clean and return
+      content = content.replace(/^(Assistente|Assistant):\s*/i, '').trim();
+      return removeThinkingTags(content);
+    }
     // Get the technical model name from the helper function
     const apiModelName = getApiModelName(modelName);
     
@@ -146,11 +175,24 @@ export async function generateAIResponse(
     
     console.log(`Generating response using model: ${apiModelName} at ${apiUrl}`);
     
+    // If web search is disabled, strip any 'Citations:' sections from previous AI messages
+    let contextMessages: Message[] = messages;
+    if (!settings?.webSearchEnabled) {
+      contextMessages = messages.map(msg => {
+        if (!msg.isUserMessage) {
+          const idx = msg.content.indexOf('Citations:');
+          if (idx !== -1) {
+            return { ...msg, content: msg.content.slice(0, idx).trim() };
+          }
+        }
+        return msg;
+      });
+    }
     // Prepare the conversation context as text
     let conversationText = "### Conversation:\n\n";
     
     // Extract the most recent messages to keep the request lighter
-    const recentMessages = messages.slice(-6);
+    const recentMessages = contextMessages.slice(-6);
     
     // Format the conversation as text
     for (const message of recentMessages) {
@@ -171,9 +213,12 @@ export async function generateAIResponse(
       conversationText +=
         "Use information from the web search results when relevant, and format the entire response in **Markdown** using headings (#, ##, ###), **bold**, *italics*, numbered and bullet lists, [links](url), `inline code`, triple-backtick code blocks, tables, and horizontal rules (---). ";
       conversationText +=
-        "Cite each source with [1], [2], etc., and include a 'Citations:' section at the end listing sources. ";
+        "Cite each source with [1], [2], [3], [4], etc.; ensure at least 4 citations in total (duplicate if necessary) and include a 'Citations:' section at the end with clickable links. ";
       conversationText +=
         "IMPORTANT: Respond exclusively with the markdown-formatted answer in the same language as the user, without any additional commentary.";
+      // New instruction: ensure using at least 4 distinct web search sources
+      conversationText +=
+        " Be sure to include at least four distinct sources from the 'Potentially Relevant Web Search Results', citing them with [1] through [4] in your response.";
     }
     
     // Cache implementation for repeated requests
@@ -182,38 +227,40 @@ export async function generateAIResponse(
       model: apiModelName,
       webSearch: settings?.webSearchEnabled || false
     });
-    const cachedResponse = responseCache.get(cacheKey);
-    if (cachedResponse) {
-      console.log("Using cached response");
-      return cachedResponse;
+    // Use cache only when web search is disabled
+    if (!settings?.webSearchEnabled) {
+      const cachedResponse = responseCache.get(cacheKey);
+      if (cachedResponse) {
+        console.log("Using cached response");
+        return cachedResponse;
+      }
     }
     
-    // Create messages with the same format as improveText that we know works
-    const adaptedMessages: LlamaMessage[] = [
-      {
-        role: 'system',
-        content: `You are a helpful, precise, and friendly AI assistant. Your task is to provide the next assistant response in the conversation using Markdown formatting, even when incorporating web search results.
+    // Build system prompt based on web search setting
+    const baseSystemPrompt = `You are a helpful, precise, and friendly AI assistant. Your task is to provide the next assistant response in the conversation using Markdown formatting.
 
 FORMATTING GUIDELINES:
 - Use #, ##, ### for headings
 - Use **bold** for emphasis
 - Use *italics* for emphasis
-- Use 1., 2. for numbered lists and - or * for bullet lists
-- Use [text](url) for hyperlinks
+- Use numbered lists (1., 2.) and bullet lists (-, *)
+- Use [link text](url) for hyperlinks
 - Use \`inline code\` for short code snippets
 - Use triple backticks to denote code blocks
 - Use tables with pipes (|) and hyphens (-)
 - Use --- for horizontal rules
 - Keep paragraphs concise and separated by blank lines
 
-When web search is enabled, cite each source with [1], [2], etc., and include a 'Citations:' section at the end.
+Respond exclusively with the markdown-formatted answer in the same language as the user.`;
+    const systemPrompt = settings?.webSearchEnabled && settings?.webSearchResults
+      ? baseSystemPrompt + `
 
-Respond exclusively with the markdown-formatted answer in the same language as the user, without any additional commentary.`,
-      },
-      {
-        role: 'user',
-        content: conversationText
-      }
+When web search is enabled, use the provided 'Potentially Relevant Web Search Results' to enrich your response. Cite each source with [1], [2], [3], [4], etc.; ensure at least 4 citations in total (duplicate as necessary), and include a 'Citations:' section at the end with clickable links.`
+      : baseSystemPrompt;
+
+    const adaptedMessages: LlamaMessage[] = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: conversationText }
     ];
     
     // Create the request body using the same format as improveText
@@ -267,16 +314,41 @@ Respond exclusively with the markdown-formatted answer in the same language as t
         throw new Error("No content in API response");
       }
       
-      // Clean up the response - remove prefixes like "Assistant:" if present
-      content = content.replace(/^(Assistente|Assistant):\s*/i, '').trim();
-      
       // Filter thinking tags
       const filteredResponse = removeThinkingTags(content);
-      
+      let finalResponse = filteredResponse;
+      if (settings?.webSearchEnabled) {
+        // Post-processing: ensure at least 4 citations in the final response
+        const headerKeyword = "Citations:";
+        const headerPos = finalResponse.indexOf(headerKeyword);
+        if (headerPos !== -1) {
+          const beforeHeader = finalResponse.slice(0, headerPos + headerKeyword.length);
+          const rest = finalResponse.slice(headerPos + headerKeyword.length);
+          const restLines = rest.split(/\r?\n/);
+          const citationLines = restLines
+            .filter(line => /^\s*\[\d+\]:/.test(line))
+            .map(line => line.trim());
+          if (citationLines.length > 0 && citationLines.length < 4) {
+            const newCitationLines = [...citationLines];
+            const lastLine = citationLines[citationLines.length - 1];
+            while (newCitationLines.length < 4) {
+              const nextIdx = newCitationLines.length + 1;
+              const duplicated = lastLine.replace(/^\[\d+\]:/, `[${nextIdx}]:`);
+              newCitationLines.push(duplicated);
+            }
+            finalResponse = beforeHeader + "\n\n" + newCitationLines.join("\n");
+          }
+        }
+      } else {
+        // Remove any citations section if web search disabled
+        finalResponse = finalResponse
+          .replace(/### Citations:[\s\S]*$/i, '')
+          .replace(/Citations:[\s\S]*$/i, '')
+          .trim();
+      }
       // Save the response in the cache
-      responseCache.set(cacheKey, filteredResponse);
-      
-      return filteredResponse;
+      responseCache.set(cacheKey, finalResponse);
+      return finalResponse;
     } catch (fetchError) {
       // Clean up the timeout in case of error
       clearTimeout(timeoutId);
