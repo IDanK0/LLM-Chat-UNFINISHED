@@ -20,8 +20,13 @@ export const availableModels: ModelConfig[] = [
     supportsImages: false
   },
   {
-    displayName: "Deepseek R1 Distill Llama 8b",
-    apiName: "deepseek-r1-distill-llama-8b",
+    displayName: "Gemma 3 4b it",
+    apiName: "gemma-3-4b-it-qat",
+    supportsImages: true
+  },
+  {
+    displayName: "Qwen3 8b",
+    apiName: "qwen3-8b",
     supportsImages: false
   },
   {
@@ -33,6 +38,16 @@ export const availableModels: ModelConfig[] = [
     displayName: "Gemma 3 12b it",
     apiName: "gemma-3-12b-it-qat",
     supportsImages: true
+  },
+  {
+    displayName: "Qwen3 14b",
+    apiName: "qwen3-14b",
+    supportsImages: false
+  },
+  {
+    displayName: "Qwen3 30b",
+    apiName: "qwen3-30b-a3b",
+    supportsImages: false
   }
   // To add a new model, simply insert a new entry here
 ];
