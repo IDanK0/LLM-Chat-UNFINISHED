@@ -73,17 +73,24 @@ function convertMessagesToLlamaFormat(messages: Message[], modelName: string): L
     day: 'numeric' 
   });
   
-  const systemContent = `You are a helpful, precise, and friendly AI assistant. Today is ${formattedDate}. 
+  const systemContent = `You are a helpful, precise, and friendly AI assistant. Today is ${formattedDate}.
 
-FORMATTING GUIDELINES:
-- Use headings (### or ##) to divide long sections
-- Use bullet points or numbered lists to structure related information
-- Highlight key concepts in **bold**
-- Use italics *when appropriate* for specific terms
-- Use inline code \`for short snippets\` where appropriate
-- Insert code blocks with triple backticks for longer examples
-- Keep paragraphs short and well-spaced for easier reading
-- Use appropriate spacing between paragraphs and sections
+FORMATTING GUIDELINES (use markdown syntax):
+- Use headings (# for H1, ## for H2, ### for H3) to structure sections
+- Use **bold** to highlight key points
+- Use *italics* for emphasis
+- Use numbered lists (1., 2.) and bullet lists (-, *) for related items
+- Use [link text](url) for hyperlinks
+- Use \\\`inline code\\\` for short code snippets
+- Use triple backticks for code blocks:
+  \\\`\\\`\\\`
+  code here
+  \\\`\\\`\\\`
+- Use tables with pipes and hyphens:
+  | Col1 | Col2 |
+  |------|------|
+  | A    | B    |
+- Keep paragraphs short and well-spaced for readability
 
 IMPORTANT: Always respond in the same language used by the user. If they write in Italian, respond in Italian. If they write in English, respond in English, and so on.
 
@@ -157,20 +164,17 @@ export async function generateAIResponse(
     }
     
     // Add an explicit request for the response
-    conversationText += "### Instructions:\nRespond as if you were the assistant in the conversation above. Make sure to format your text well using headings, lists, bold and italic where appropriate to improve readability. ";
+    conversationText += "### Instructions:\nRespond as the assistant in the conversation above, using markdown syntax for headings, lists, bold, italics, links, code blocks, and tables. Keep paragraphs concise and well-spaced. ";
     
     // Add specific instructions if web search is enabled
     if (settings?.webSearchEnabled && settings?.webSearchResults) {
-      conversationText += "Use information from the web search results when relevant to the user's question. ";
-      conversationText += "For each specific piece of information you use from the search results, add a numerical reference in square brackets, e.g. [1], [2], etc. ";
-      conversationText += "IMPORTANT: At the end of your response, always add a 'Citations:' section with a numbered list of the sources used, in this format: ";
-      conversationText += "'Citations:\\n[1]: Wikipedia: Article Title\\n[2]: Wikipedia: Another Article\\n...' ";
-      conversationText += "Each reference should point to a specific Wikipedia article cited in the response. ";
-      conversationText += "Make sure the reference numbers in the text exactly match the citations list. ";
+      conversationText +=
+        "Use information from the web search results when relevant, and format the entire response in **Markdown** using headings (#, ##, ###), **bold**, *italics*, numbered and bullet lists, [links](url), `inline code`, triple-backtick code blocks, tables, and horizontal rules (---). ";
+      conversationText +=
+        "Cite each source with [1], [2], etc., and include a 'Citations:' section at the end listing sources. ";
+      conversationText +=
+        "IMPORTANT: Respond exclusively with the markdown-formatted answer in the same language as the user, without any additional commentary.";
     }
-    
-    conversationText += "IMPORTANT: Respond in the same language the user is using. ";
-    conversationText += "Provide ONLY the response, without prefixes like 'Assistant:'.";
     
     // Cache implementation for repeated requests
     const cacheKey = JSON.stringify({ 
@@ -188,21 +192,23 @@ export async function generateAIResponse(
     const adaptedMessages: LlamaMessage[] = [
       {
         role: 'system',
-        content: `You are a helpful, precise, and friendly AI assistant. Your task is to provide the next assistant response in the conversation.
+        content: `You are a helpful, precise, and friendly AI assistant. Your task is to provide the next assistant response in the conversation using Markdown formatting, even when incorporating web search results.
 
 FORMATTING GUIDELINES:
-- Use headings (### or ##) to divide long sections
-- Use bullet points or numbered lists to structure related information
-- Highlight key concepts in **bold**
-- Use italics *when appropriate* for specific terms
-- Use inline code \`for short snippets\` where appropriate
-- Insert code blocks with triple backticks for longer examples
-- Keep paragraphs short and well-spaced for easier reading
-- Use appropriate spacing between paragraphs and sections
+- Use #, ##, ### for headings
+- Use **bold** for emphasis
+- Use *italics* for emphasis
+- Use 1., 2. for numbered lists and - or * for bullet lists
+- Use [text](url) for hyperlinks
+- Use \`inline code\` for short code snippets
+- Use triple backticks to denote code blocks
+- Use tables with pipes (|) and hyphens (-)
+- Use --- for horizontal rules
+- Keep paragraphs concise and separated by blank lines
 
-IMPORTANT: Always respond in the same language used by the user. If they write in Italian, respond in Italian. If they write in English, respond in English, and so on.
+When web search is enabled, cite each source with [1], [2], etc., and include a 'Citations:' section at the end.
 
-Respond naturally and appropriately to the context of the conversation, ensuring that the text is well formatted for better readability.`
+Respond exclusively with the markdown-formatted answer in the same language as the user, without any additional commentary.`,
       },
       {
         role: 'user',
