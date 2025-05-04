@@ -255,7 +255,7 @@ Respond exclusively with the markdown-formatted answer in the same language as t
     const systemPrompt = settings?.webSearchEnabled && settings?.webSearchResults
       ? baseSystemPrompt + `
 
-When web search is enabled, use the provided 'Potentially Relevant Web Search Results' to enrich your response. Cite each source with [1], [2], [3], [4], etc.; ensure at least 4 citations in total (duplicate as necessary), and include a 'Citations:' section at the end with clickable links.`
+When web search is enabled, use the provided 'Potentially Relevant Web Search Results' to enrich your response. Prefix your answer with "**Answer:**". For each fact you include, add an inline citation in the format [n](URL) immediately after it. After completing the answer, include a "**Citations:**" section listing **all** the sources you received (even if some were not cited), each as "[n]: [Title](URL)". Use **at least 4** citations and there is no maximum limit.`
       : baseSystemPrompt;
 
     const adaptedMessages: LlamaMessage[] = [
