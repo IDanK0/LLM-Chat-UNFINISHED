@@ -16,28 +16,28 @@ const AnimatedText = memo(({ text, className = "", disabled = false }: AnimatedT
   const wordIndexRef = useRef(0);
   const words = useRef<string[]>([]);
   
-  // Verificare se lo streaming è abilitato nelle impostazioni
+  // Check if streaming is enabled in the settings
   const settings = getSettings();
   const isAnimationEnabled = settings.stream && !disabled;
-  const animationSpeed = settings.animationSpeed || 15; // Parole al secondo
+  const animationSpeed = settings.animationSpeed || 15; // Words per second
   
-  // Dividi il testo in parole quando il testo cambia o l'animazione viene abilitata/disabilitata
+  // Split the text into words when the text changes or animation is enabled/disabled
   useEffect(() => {
-    // Questo regex divide il testo mantenendo spazi e punteggiatura con le parole
-    // per un'animazione più naturale
-    const regex = /(\S+\s*)/g;
+    // Preserve line breaks during text animation
+    // This regex splits the text into chunks (words, spaces, and line breaks)
+    const regex = /(\n|[^\s\n]+|\s+)/g;
     const matches = text.match(regex) || [];
     words.current = matches;
     
     if (!isAnimationEnabled) {
-      // Se l'animazione è disabilitata, mostra subito tutto il testo
+      // If animation is disabled, immediately show all text
       setDisplayedText(text);
       setIsComplete(true);
       setIsAnimating(false);
         return;
     }
     
-    // Reset e avvio animazione
+    // Reset and start animation
     setDisplayedText("");
     setIsAnimating(true);
     setIsComplete(false);
@@ -46,7 +46,7 @@ const AnimatedText = memo(({ text, className = "", disabled = false }: AnimatedT
         cancelAnimationFrame(animationRef.current);
       }
     
-    // Piccolo ritardo prima dell'inizio per dare un effetto più naturale
+    // Small delay before starting for a more natural effect
     setTimeout(() => {
       lastTimeRef.current = performance.now();
       animationRef.current = requestAnimationFrame(animate);
@@ -59,19 +59,19 @@ const AnimatedText = memo(({ text, className = "", disabled = false }: AnimatedT
   };
   }, [text, isAnimationEnabled]);
 
-  // Funzione di animazione che utilizza requestAnimationFrame per fluidità
+  // Animation function that uses requestAnimationFrame for smoothness
   const animate = (timestamp: number) => {
-    // Calcola il tempo trascorso dall'ultimo frame
+    // Calculate time elapsed since the last frame
     const elapsed = timestamp - lastTimeRef.current;
     
-    // Calcola l'intervallo in base alla velocità impostata
-    // 1000ms / velocità = ms per parola
+    // Calculate interval based on the set speed
+    // 1000ms / speed = ms per word
     const speedPerWord = 1000 / animationSpeed;
     
     if (elapsed > speedPerWord) {
-      // Tempo sufficiente è trascorso per mostrare una nuova parola
+      // Enough time has passed to show a new word
       if (wordIndexRef.current < words.current.length) {
-        // Aggiungi la prossima parola
+        // Add the next word
         const currentText = words.current
           .slice(0, wordIndexRef.current + 1)
           .join("");
@@ -80,25 +80,25 @@ const AnimatedText = memo(({ text, className = "", disabled = false }: AnimatedT
         wordIndexRef.current++;
         lastTimeRef.current = timestamp;
       } else {
-        // Animazione completata
+        // Animation completed
         setIsAnimating(false);
         setIsComplete(true);
-        return; // Uscire dalla funzione di animazione
+        return; // Exit the animation function
     }
     }
     
-    // Continua l'animazione solo se non abbiamo finito
+    // Continue animation only if we haven't finished
     if (wordIndexRef.current < words.current.length) {
       animationRef.current = requestAnimationFrame(animate);
     } else {
-      // Assicuriamoci di impostare gli stati correttamente
+      // Make sure states are set correctly
       setIsAnimating(false);
       setIsComplete(true);
       animationRef.current = null;
     }
   };
 
-  // Opzione per saltare l'animazione con un clic
+  // Option to skip animation with a click
   const handleClick = () => {
     if (isAnimating && !isComplete) {
       if (animationRef.current) {
@@ -111,7 +111,7 @@ const AnimatedText = memo(({ text, className = "", disabled = false }: AnimatedT
     }
   };
 
-  // Cursore lampeggiante solo durante l'animazione attiva
+  // Blinking cursor only during active animation
   const renderCursor = () => {
     if (isAnimating) {
       return <span className="animate-cursor">▌</span>;
@@ -121,7 +121,7 @@ const AnimatedText = memo(({ text, className = "", disabled = false }: AnimatedT
 
   return (
     <div 
-      className={`relative ${className}`} 
+      className={`relative message-content ${className}`} 
       onClick={handleClick}
       aria-live={isAnimating ? "polite" : "off"}
       style={{ cursor: isAnimating ? 'pointer' : 'auto' }}
@@ -129,8 +129,8 @@ const AnimatedText = memo(({ text, className = "", disabled = false }: AnimatedT
       {displayedText}
       {renderCursor()}
       
-      {/* Stili per il cursore e l'animazione */}
-      <style jsx global>{`
+      {/* Styles for cursor and animation */}
+      <style>{`
         .animate-cursor {
           display: inline-block;
           color: #3b82f6;
@@ -139,6 +139,13 @@ const AnimatedText = memo(({ text, className = "", disabled = false }: AnimatedT
           animation: blink 0.7s infinite;
           margin-left: 1px;
 }
+
+        .message-content {
+          white-space: pre-wrap;
+          word-wrap: break-word;
+          overflow-wrap: break-word;
+          max-width: 100%;
+        }
         
         @keyframes blink {
           0%, 100% { opacity: 1; }

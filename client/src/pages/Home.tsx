@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Chat } from "@/lib/types";
+import { Chat as ChatType } from "@/lib/types";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -24,7 +24,7 @@ export default function Home() {
   const [selectedModel, setSelectedModel] = useState(defaultModel);
   
   // Fetch chats
-  const { data: chats = [], isLoading } = useQuery<Chat[]>({
+  const { data: chats = [], isLoading } = useQuery<ChatType[]>({
     queryKey: ['/api/chats'],
   });
   
@@ -32,7 +32,7 @@ export default function Home() {
   const handleNewChat = async () => {
     try {
       const response = await apiRequest('POST', '/api/chats', { 
-        title: "Nuova Chat" 
+        title: "New Chat" 
       });
       const newChat = await response.json();
       queryClient.invalidateQueries({ queryKey: ['/api/chats'] });
@@ -42,7 +42,7 @@ export default function Home() {
     }
   };
   
-  // Non reindirizzare automaticamente, mostra sempre la schermata principale
+  // Don't redirect automatically, always show the main screen
   
   return (
     <div className="flex h-screen bg-background">
@@ -97,7 +97,7 @@ export default function Home() {
           </div>
           
           <div className="invisible w-8">
-            {/* Spazio vuoto per mantenere il modello centrato */}
+            {/* Empty space to keep the model centered */}
           </div>
         </header>
 
@@ -108,14 +108,14 @@ export default function Home() {
             </div>
             <h1 className="text-3xl font-bold text-white">LLM Chat</h1>
             <p className="text-white/70">
-              Benvenuto nell'interfaccia di chat AI con supporto per la lingua italiana. Inizia una nuova conversazione o seleziona una chat esistente.
+              Welcome to the AI chat interface with support for the Italian language. Start a new conversation or select an existing chat.
             </p>
             <Button 
               className="mx-auto bg-primary hover:bg-primary/90 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105" 
               onClick={handleNewChat}
             >
               <PlusIcon className="mr-2 h-4 w-4" />
-              Inizia una nuova chat
+              Start a new chat
             </Button>
             
             {isLoading && (

@@ -27,7 +27,7 @@ export const MobileSuggestionDropdown: React.FC<MobileSuggestionDropdownProps> =
             style={{ height: "28px", padding: "0 12px" }}
           >
             <MoreHorizontalIcon className="h-3 w-3 mr-1 text-primary" />
-            <span className="text-white/90 text-xs">Suggerimenti</span>
+            <span className="text-white/90 text-xs">Suggestions</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent 
@@ -37,41 +37,41 @@ export const MobileSuggestionDropdown: React.FC<MobileSuggestionDropdownProps> =
         >
           <DropdownMenuItem 
             className="text-white hover:bg-primary/20 focus:bg-primary/20 rounded-lg py-1.5 text-xs"
-            onClick={() => insertTemplate("Descrivi la seguente immagine allegata.")}
+            onClick={() => insertTemplate("Describe the attached image.")}
           >
             <ImageIcon className="h-3 w-3 mr-2 text-primary" />
-            <span>Descrivi immagine</span>
+            <span>Describe image</span>
           </DropdownMenuItem>
           <DropdownMenuItem 
             className="text-white hover:bg-primary/20 focus:bg-primary/20 rounded-lg py-1.5 text-xs"
-            onClick={() => insertTemplate("Puoi scrivere un esempio di codice React per una to-do list?")}
+            onClick={() => insertTemplate("Can you write a React code example for a to-do list?")}
           >
             <Code2Icon className="h-3 w-3 mr-2 text-primary" />
-            <span>Codice</span>
+            <span>Code</span>
           </DropdownMenuItem>
           <DropdownMenuItem 
             className="text-white hover:bg-primary/20 focus:bg-primary/20 rounded-lg py-1.5 text-xs"
-            onClick={() => insertTemplate("Aiutami a creare un piano di studio per imparare il machine learning in 3 mesi.")}
+            onClick={() => insertTemplate("Help me create a study plan to learn machine learning in 3 months.")}
           >
             <FileIcon className="h-3 w-3 mr-2 text-primary" />
-            <span>Fai un piano</span>
+            <span>Make a plan</span>
           </DropdownMenuItem>
           <DropdownMenuItem 
             className="text-white hover:bg-primary/20 focus:bg-primary/20 rounded-lg py-1.5 text-xs"
             onClick={() => {
               setWebSearchEnabled(true);
-              insertTemplate("Quali sono gli sviluppi più recenti nell'intelligenza artificiale generativa?");
+              insertTemplate("What are the most recent developments in generative AI?");
             }}
           >
             <NotebookTextIcon className="h-3 w-3 mr-2 text-primary" />
-            <span>Notizie</span>
+            <span>News</span>
           </DropdownMenuItem>
           <DropdownMenuItem 
             className="text-white hover:bg-primary/20 focus:bg-primary/20 rounded-lg py-1.5 text-xs"
-            onClick={() => insertTemplate("Qual è la differenza tra machine learning e deep learning?")}
+            onClick={() => insertTemplate("What is the difference between machine learning and deep learning?")}
           >
             <PlusIcon className="h-3 w-3 mr-2 text-primary" />
-            <span>Altro</span>
+            <span>More</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

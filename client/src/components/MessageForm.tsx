@@ -1,7 +1,7 @@
 import React, { forwardRef } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { ArrowRightIcon } from "lucide-react";
+import { ArrowRightIcon, GlobeIcon, LoaderIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MessageActions } from "./MessageActions";
 
@@ -15,11 +15,12 @@ interface MessageFormProps {
   handleAttachFile: () => void;
   handleImproveText: () => void;
   isImprovingText: boolean;
+  isSearchingWikipedia?: boolean;
   isMobile: boolean;
   fileInputRef: React.RefObject<HTMLInputElement>;
   onFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
   isPending: boolean;
-  modelSupportsImages: boolean; // Nuova proprietà
+  modelSupportsImages: boolean;
 }
 
 export const MessageForm = forwardRef<HTMLTextAreaElement, MessageFormProps>(({
@@ -32,17 +33,18 @@ export const MessageForm = forwardRef<HTMLTextAreaElement, MessageFormProps>(({
   handleAttachFile,
   handleImproveText,
   isImprovingText,
+  isSearchingWikipedia,
   isMobile,
   fileInputRef,
   onFileSelect,
   isPending,
-  modelSupportsImages // Usiamo questa proprietà
+  modelSupportsImages
 }, ref) => {
   return (
     <form onSubmit={onSubmit}>
       <div className="bg-[#101c38] border border-primary/30 rounded-xl shadow-lg transition-all duration-300 ease-in-out">
         <div className="flex items-center p-1.5">
-          {/* Mostra MessageActions solo su desktop */}
+          {/* Show MessageActions only on desktop */}
           {!isMobile && (
             <MessageActions
               isMobile={isMobile}
@@ -51,17 +53,22 @@ export const MessageForm = forwardRef<HTMLTextAreaElement, MessageFormProps>(({
               handleAttachFile={handleAttachFile}
               handleImproveText={handleImproveText}
               isImprovingText={isImprovingText}
+              isSearchingWikipedia={isSearchingWikipedia}
               hasMessageContent={!!message?.trim()}
-              modelSupportsImages={modelSupportsImages} // Passiamo questa proprietà
+              modelSupportsImages={modelSupportsImages}
             />
           )}
           
           <Textarea
-            placeholder={isImprovingText ? "Miglioramento in corso..." : "Come posso aiutarti oggi?"}
+            placeholder={isImprovingText 
+              ? "Improving text..." 
+              : isSearchingWikipedia
+                ? "Searching Wikipedia..."
+                : "How can I help you today?"}
             className={cn(
               "flex-1 bg-transparent border-0 outline-none shadow-none focus-visible:ring-0 text-sm textarea-glow resize-none",
               "py-2.5 min-h-[36px] transition-all duration-200 max-h-[120px] overflow-y-auto flex items-center justify-center",
-              isImprovingText && "opacity-70",
+              (isImprovingText || isSearchingWikipedia) && "opacity-70",
               isMobile && "message-textarea py-1 min-h-[28px] max-h-[80px]"
             )}
             value={message}
@@ -73,6 +80,16 @@ export const MessageForm = forwardRef<HTMLTextAreaElement, MessageFormProps>(({
             style={{ display: "flex", alignItems: "center" }}
           />
           
+          {/* Wikipedia search indicator */}
+          {isSearchingWikipedia && webSearchEnabled && (
+            <div className="flex items-center justify-center mr-1">
+              <div className="flex items-center justify-center bg-primary/10 rounded-full p-1.5">
+                <GlobeIcon className="h-3 w-3 text-primary animate-pulse" />
+                <LoaderIcon className="h-3 w-3 text-primary ml-1 animate-spin" />
+              </div>
+            </div>
+          )}
+          
           <Button 
             type="submit" 
             size="icon" 
@@ -80,14 +97,14 @@ export const MessageForm = forwardRef<HTMLTextAreaElement, MessageFormProps>(({
               "rounded-full bg-primary hover:bg-primary/90 ml-1 transition-all duration-300 transform hover:scale-105",
               isMobile ? "h-6 w-6" : "h-7 w-7"
             )}
-            disabled={!message?.trim() || isPending || isImprovingText}
+            disabled={!message?.trim() || isPending || isImprovingText || isSearchingWikipedia}
           >
             <ArrowRightIcon className={isMobile ? "h-3 w-3" : "h-3.5 w-3.5"} />
           </Button>
         </div>
       </div>
       
-      {/* Input nascosto per la selezione dei file */}
+      {/* Hidden input for file selection */}
       <input
         type="file"
         ref={fileInputRef}

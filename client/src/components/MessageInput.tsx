@@ -18,9 +18,10 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
     webSearchEnabled,
     setWebSearchEnabled,
     isImprovingText,
+    isSearchingWikipedia,
     textareaRef,
     fileInputRef,
-    currentModelSupportsImages, // Nuova proprietà da useMessageInput
+    currentModelSupportsImages,
     handleTextareaChange,
     handleKeyDown,
     handleSendMessage,
@@ -49,18 +50,19 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
           handleAttachFile={handleAttachFile}
           handleImproveText={handleImproveText}
           isImprovingText={isImprovingText}
+          isSearchingWikipedia={isSearchingWikipedia}
           isMobile={isMobile}
           fileInputRef={fileInputRef}
           onFileSelect={handleFileSelect}
           isPending={sendMessageMutation.isPending}
-          modelSupportsImages={currentModelSupportsImages} // Passiamo questa proprietà
+          modelSupportsImages={currentModelSupportsImages}
           ref={textareaRef}
         />
 
-        {/* Contenitore per i pulsanti mobili che appaiono sotto la textbox */}
+        {/* Container for mobile buttons that appear below the textbox */}
         {isMobile && (
           <div className="flex items-center justify-center mt-1 space-x-2">
-            {/* Mobile Message Actions (pulsanti ricerca, allegati, improving) */}
+            {/* Mobile Message Actions (search, attachments, improving buttons) */}
             <div className="flex items-center">
               <MessageActions
                 isMobile={isMobile}
@@ -69,12 +71,13 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
                 handleAttachFile={handleAttachFile}
                 handleImproveText={handleImproveText}
                 isImprovingText={isImprovingText}
+                isSearchingWikipedia={isSearchingWikipedia}
                 hasMessageContent={!!message?.trim()}
-                modelSupportsImages={currentModelSupportsImages} // Passiamo questa proprietà
+                modelSupportsImages={currentModelSupportsImages}
               />
             </div>
             
-            {/* Menu a dropdown per suggerimenti su dispositivi mobili */}
+            {/* Dropdown menu for suggestions on mobile devices */}
             <MobileSuggestionDropdown 
               insertTemplate={insertTemplate}
               setWebSearchEnabled={setWebSearchEnabled}
@@ -82,7 +85,7 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
           </div>
         )}
 
-        {/* Bottoni visibili solo su schermi grandi */}
+        {/* Buttons visible only on large screens */}
         {!isMobile && (
           <DesktopSuggestionButtons 
             setMessage={setMessage}

@@ -7,7 +7,7 @@ import Chat from "@/pages/Chat";
 import NotFound from "@/pages/not-found";
 import { MobileOptimization } from "@/components/MobileOptimization";
 
-// Importiamo gli stili specifici per mobile
+// Import specific styles for mobile
 import "@/styles/mobile-optimization.css";
 function Router() {
   return (

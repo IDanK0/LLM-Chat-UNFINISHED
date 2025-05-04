@@ -1,5 +1,5 @@
 interface Chat {
-  id: string; // Modificato: da number a string
+  id: string; // Modified: from number to string
   userId: number;
   title: string;
   createdAt: string;
@@ -11,7 +11,7 @@ interface ChatWithMessages extends Chat {
 
 interface Message {
   id: number;
-  chatId: string; // Modificato: da number a string
+  chatId: string; // Modified: from number to string
   content: string;
   isUserMessage: boolean;
   createdAt: string;

@@ -1,22 +1,31 @@
 import { ServerConfig } from './config';
-import { Message } from '@/lib/types';
+// Define the Message interface directly here instead of importing it
+interface Message {
+  id: string;
+  chatId: string;
+  content: string;
+  isUserMessage: boolean;
+  createdAt: string;
+}
 import { getApiModelName } from '../client/src/lib/modelConfig';
 
-// Interfaccia per le impostazioni della richiesta API
+// API request settings interface
 interface ApiRequestSettings {
   apiUrl?: string;
   temperature?: number;
   maxTokens?: number;
-  stream?: boolean; // Mantenuto per compatibilità ma non verrà utilizzato
+  stream?: boolean; // Kept for compatibility but won't be used
+  webSearchEnabled?: boolean; // New field to enable web search
+  webSearchResults?: string; // Pre-formatted web search results
 }
 
-// Interfaccia per i messaggi formattati per Llama
+// Interface for messages formatted for Llama
 interface LlamaMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
 }
 
-// Implementazione di una cache semplice per migliorare le prestazioni
+// Simple cache implementation to improve performance
 class SimpleCache {
   private cache: Map<string, { value: string, timestamp: number }>;
   private maxSize: number;
@@ -28,17 +37,20 @@ class SimpleCache {
 
   get(key: string): string | undefined {
     const item = this.cache.get(key);
-    if (item && Date.now() - item.timestamp < 3600000) { // Cache valida per un'ora
+    if (item && Date.now() - item.timestamp < 3600000) { // Cache valid for one hour
       return item.value;
     }
     return undefined;
   }
 
   set(key: string, value: string): void {
-    // Se la cache è piena, rimuovi la voce più vecchia
+    // If cache is full, remove the oldest entry
     if (this.cache.size >= this.maxSize) {
-      const oldestKey = this.cache.keys().next().value;
+      const keys = Array.from(this.cache.keys());
+      if (keys.length > 0) {
+        const oldestKey = keys[0];
       this.cache.delete(oldestKey);
+      }
     }
     this.cache.set(key, { value, timestamp: Date.now() });
   }
@@ -48,24 +60,38 @@ class SimpleCache {
   }
 }
 
-// Istanza della cache
+// Cache instance
 const responseCache = new SimpleCache();
 
-// Converti i messaggi dal formato DB al formato API - Ottimizzato
+// Convert messages from DB format to API format - Optimized
 function convertMessagesToLlamaFormat(messages: Message[], modelName: string): LlamaMessage[] {
-  // Data corrente formattata per il messaggio di sistema
-  const formattedDate = new Date().toLocaleDateString('it-IT', { 
+  // Current date formatted for the system message
+  const formattedDate = new Date().toLocaleDateString('en-US', { 
     weekday: 'long', 
     year: 'numeric', 
     month: 'long', 
     day: 'numeric' 
   });
   
-  const systemContent = `Sei un assistente AI italiano utile, preciso e amichevole. Oggi è ${formattedDate}. Rispondi in modo accurato e naturale.`;
+  const systemContent = `You are a helpful, precise, and friendly AI assistant. Today is ${formattedDate}. 
+
+FORMATTING GUIDELINES:
+- Use headings (### or ##) to divide long sections
+- Use bullet points or numbered lists to structure related information
+- Highlight key concepts in **bold**
+- Use italics *when appropriate* for specific terms
+- Use inline code \`for short snippets\` where appropriate
+- Insert code blocks with triple backticks for longer examples
+- Keep paragraphs short and well-spaced for easier reading
+- Use appropriate spacing between paragraphs and sections
+
+IMPORTANT: Always respond in the same language used by the user. If they write in Italian, respond in Italian. If they write in English, respond in English, and so on.
+
+Respond accurately, naturally, and with good formatting, maintaining a conversational style.`;
   
   let result: LlamaMessage[] = [];
   
-  // Per tutti i modelli, utilizziamo il formato standard con messaggio di sistema
+  // For all models, we use the standard format with system message
   result.push({
     role: 'system',
     content: systemContent
@@ -81,6 +107,20 @@ function convertMessagesToLlamaFormat(messages: Message[], modelName: string): L
   return result;
 }
 
+/**
+ * Removes <think></think> tags from text
+ * @param text Text to filter
+ * @returns Filtered text
+ */
+function removeThinkingTags(text: string): string {
+  // Remove all <think> tags and their content
+  return text.replace(/<think>[\s\S]*?<\/think>/g, '')
+    // Remove any remaining tags
+    .replace(/<\/?think>/g, '')
+    // Don't normalize whitespace to preserve line breaks
+    .trim();
+}
+
 export async function generateAIResponse(
   messages: Message[], 
   modelName = "Llama 3.1 8b Instruct",
@@ -88,45 +128,81 @@ export async function generateAIResponse(
 ): Promise<string> {
   try {
     if (!messages || messages.length === 0) {
-      return "Non ci sono messaggi da elaborare.";
+      return "There are no messages to process.";
     }
     
-    // Ottieni il nome del modello tecnico dalla funzione helper
+    // Get the technical model name from the helper function
     const apiModelName = getApiModelName(modelName);
     
-    // Usa l'URL dell'API dalle impostazioni o quello di default dalla configurazione centralizzata
+    // Use the API URL from settings or the default from centralized configuration
     const apiUrl = settings?.apiUrl || ServerConfig.DEFAULT_API_URL;
     
     console.log(`Generating response using model: ${apiModelName} at ${apiUrl}`);
     
-    // Prepara il contesto della conversazione come testo
-    let conversationText = "### Conversazione:\n\n";
+    // Prepare the conversation context as text
+    let conversationText = "### Conversation:\n\n";
     
-    // Estrai gli ultimi messaggi per mantenere la richiesta più leggera
+    // Extract the most recent messages to keep the request lighter
     const recentMessages = messages.slice(-6);
     
-    // Formatta la conversazione come testo
+    // Format the conversation as text
     for (const message of recentMessages) {
-      const role = message.isUserMessage ? "Utente" : "Assistente";
+      const role = message.isUserMessage ? "User" : "Assistant";
       conversationText += `${role}: ${message.content.trim()}\n\n`;
     }
     
-    // Aggiungi una richiesta esplicita per la risposta
-    conversationText += "### Istruzioni:\nRispondi come faresti se fossi l'assistente nella conversazione sopra riportata. Fornisci SOLO la risposta, senza prefissi come 'Assistente:'.";
+    // Add web search results if enabled
+    if (settings?.webSearchEnabled && settings?.webSearchResults) {
+      conversationText += `\n\n### Potentially Relevant Web Search Results\n\n${settings.webSearchResults}\n\n`;
+    }
     
-    // Implementazione di cache per richieste ripetute
-    const cacheKey = JSON.stringify({ conversation: conversationText, model: apiModelName });
+    // Add an explicit request for the response
+    conversationText += "### Instructions:\nRespond as if you were the assistant in the conversation above. Make sure to format your text well using headings, lists, bold and italic where appropriate to improve readability. ";
+    
+    // Add specific instructions if web search is enabled
+    if (settings?.webSearchEnabled && settings?.webSearchResults) {
+      conversationText += "Use information from the web search results when relevant to the user's question. ";
+      conversationText += "For each specific piece of information you use from the search results, add a numerical reference in square brackets, e.g. [1], [2], etc. ";
+      conversationText += "IMPORTANT: At the end of your response, always add a 'Citations:' section with a numbered list of the sources used, in this format: ";
+      conversationText += "'Citations:\\n[1]: Wikipedia: Article Title\\n[2]: Wikipedia: Another Article\\n...' ";
+      conversationText += "Each reference should point to a specific Wikipedia article cited in the response. ";
+      conversationText += "Make sure the reference numbers in the text exactly match the citations list. ";
+    }
+    
+    conversationText += "IMPORTANT: Respond in the same language the user is using. ";
+    conversationText += "Provide ONLY the response, without prefixes like 'Assistant:'.";
+    
+    // Cache implementation for repeated requests
+    const cacheKey = JSON.stringify({ 
+      conversation: conversationText, 
+      model: apiModelName,
+      webSearch: settings?.webSearchEnabled || false
+    });
     const cachedResponse = responseCache.get(cacheKey);
     if (cachedResponse) {
       console.log("Using cached response");
       return cachedResponse;
     }
     
-    // Crea messaggi con lo stesso formato di improveText che sappiamo funzionare
+    // Create messages with the same format as improveText that we know works
     const adaptedMessages: LlamaMessage[] = [
       {
         role: 'system',
-        content: `Sei un assistente AI italiano utile, preciso e amichevole. Il tuo compito è fornire la prossima risposta dell'assistente nella conversazione. Rispondi in modo naturale e appropriato al contesto della conversazione.`
+        content: `You are a helpful, precise, and friendly AI assistant. Your task is to provide the next assistant response in the conversation.
+
+FORMATTING GUIDELINES:
+- Use headings (### or ##) to divide long sections
+- Use bullet points or numbered lists to structure related information
+- Highlight key concepts in **bold**
+- Use italics *when appropriate* for specific terms
+- Use inline code \`for short snippets\` where appropriate
+- Insert code blocks with triple backticks for longer examples
+- Keep paragraphs short and well-spaced for easier reading
+- Use appropriate spacing between paragraphs and sections
+
+IMPORTANT: Always respond in the same language used by the user. If they write in Italian, respond in Italian. If they write in English, respond in English, and so on.
+
+Respond naturally and appropriately to the context of the conversation, ensuring that the text is well formatted for better readability.`
       },
       {
         role: 'user',
@@ -134,19 +210,19 @@ export async function generateAIResponse(
       }
     ];
     
-    // Crea il corpo della richiesta usando lo stesso formato di improveText
+    // Create the request body using the same format as improveText
     const requestBody = {
       model: apiModelName,
       messages: adaptedMessages,
       temperature: settings?.temperature ?? 0.7,
-      max_tokens: settings?.maxTokens ?? -1, // Usa -1 come in improveText
-      stream: false // Esplicitamente impostato a false
+      max_tokens: -1, // Always -1 to remove token limitations
+      stream: false // Explicitly set to false
     };
     
-    // Log della richiesta per debug
+    // Log the request for debugging
     console.log(`Request body (simplified):`, JSON.stringify(requestBody).substring(0, 500) + "...");
     
-    // Configura il timeout per la richiesta
+    // Configure the timeout for the request
     const isLargeModel = apiModelName.includes("12b") || apiModelName.includes("70b");
     const timeoutDuration = isLargeModel ? ServerConfig.API_TIMEOUT * 2 : ServerConfig.API_TIMEOUT;
     console.log(`Setting timeout to ${timeoutDuration}ms for model ${apiModelName}`);
@@ -155,7 +231,7 @@ export async function generateAIResponse(
     const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
     
     try {
-      // Esegui la richiesta con gli stessi header e parametri di improveText
+      // Execute the request with the same headers and parameters as improveText
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
@@ -165,35 +241,38 @@ export async function generateAIResponse(
         signal: controller.signal
       });
       
-      // Pulisci il timeout
+      // Clear the timeout
       clearTimeout(timeoutId);
       
-      // Verifica se la richiesta ha avuto successo
+      // Check if the request was successful
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`API response error: ${response.status} ${response.statusText} - ${errorText}`);
       }
       
-      // Ottieni la risposta JSON
+      // Get the JSON response
       const data = await response.json();
       
-      // Estrai il contenuto della risposta
+      // Extract the response content
       let content = data.choices && data.choices[0]?.message?.content;
       
-      // Se non c'è contenuto, restituisci un messaggio di errore
+      // If there's no content, return an error message
       if (!content) {
         throw new Error("No content in API response");
       }
       
-      // Pulizia della risposta - rimuovi prefissi come "Assistente:" se presenti
+      // Clean up the response - remove prefixes like "Assistant:" if present
       content = content.replace(/^(Assistente|Assistant):\s*/i, '').trim();
       
-      // Salva la risposta nella cache
-      responseCache.set(cacheKey, content);
+      // Filter thinking tags
+      const filteredResponse = removeThinkingTags(content);
       
-      return content;
+      // Save the response in the cache
+      responseCache.set(cacheKey, filteredResponse);
+      
+      return filteredResponse;
     } catch (fetchError) {
-      // Pulizia del timeout in caso di errore
+      // Clean up the timeout in case of error
       clearTimeout(timeoutId);
       throw fetchError;
     }
@@ -201,14 +280,14 @@ export async function generateAIResponse(
     console.error('Error generating AI response:', error);
     
     if (error instanceof DOMException && error.name === 'AbortError') {
-      return `Mi dispiace, la generazione della risposta sta richiedendo troppo tempo. Il modello "${modelName}" potrebbe essere momentaneamente sovraccarico. Puoi attendere qualche minuto e riprovare o selezionare un modello più piccolo.`;
+      return `I'm sorry, but generating the response is taking too long. The "${modelName}" model might be temporarily overloaded. You can wait a few minutes and try again or select a smaller model.`;
     }
     
-    // Errore più dettagliato per aiutare nel debugging
+    // More detailed error to help with debugging
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(`Detailed error for model ${modelName}: ${errorMessage}`);
     
-    return `Mi dispiace, ma al momento non riesco a generare una risposta. Riprova con un altro modello o contatta l'assistenza.`;
+    return `I'm sorry, but I can't generate a response at the moment. Please try with another model or contact support.`;
   }
 }
 
@@ -218,22 +297,33 @@ export async function improveText(
   settings?: ApiRequestSettings
 ): Promise<string> {
   if (!text || text.trim().length === 0) {
-    return "Il testo fornito è vuoto. Inserisci un testo da migliorare.";
+    return "The provided text is empty. Please enter text to improve.";
   }
   
   try {
-    // Ottieni il nome del modello tecnico dalla funzione helper
+    // Get the technical model name from the helper function
     const apiModelName = getApiModelName(modelName);
     
     const apiUrl = settings?.apiUrl || ServerConfig.DEFAULT_API_URL;
     
     console.log(`Improving text with model: ${apiModelName} at URL: ${apiUrl}`);
     
-    // Crea messaggi per il miglioramento del prompt - tutti i modelli usano lo stesso formato
+    // Create messages for prompt improvement - all models use the same format
     const messages: LlamaMessage[] = [
       {
         role: 'system',
-        content: `Sei un esperto di prompt engineering. Il tuo compito è riscrivere il prompt fornito dall'utente in modo che sia più chiaro, dettagliato e strutturato, con l'obiettivo di ottenere risposte più precise e pertinenti da un modello di intelligenza artificiale. Restituisci esclusivamente la versione ottimizzata del prompt, senza aggiungere spiegazioni o testo aggiuntivo.`
+        content: `You are a prompt engineering expert. Your task is to rewrite the user's prompt to make it clearer, more detailed, and better structured, with the goal of getting more precise and relevant responses from an AI model.
+
+When rewriting the prompt, make sure to:
+1. Organize information logically and in a structured way
+2. Use headings, bullet points or numbered lists when appropriate
+3. Highlight key concepts with appropriate formatting (bold, italics)
+4. Add adequate spacing to improve readability
+5. Maintain a well-organized and easy-to-read format
+
+IMPORTANT: Preserve the original language of the prompt. If the user writes in Italian, respond in Italian. If they write in English, respond in English, and so on.
+
+Return exclusively the optimized version of the prompt, without adding explanations or additional text.`
       },
       {
         role: 'user',
@@ -241,7 +331,7 @@ export async function improveText(
       }
     ];
     
-    // Implementazione di cache per richieste ripetute
+    // Cache implementation for repeated requests
     const cacheKey = JSON.stringify({ text, model: apiModelName, action: 'improve' });
     const cachedResponse = responseCache.get(cacheKey);
     if (cachedResponse) {
@@ -249,7 +339,7 @@ export async function improveText(
       return cachedResponse;
     }
     
-    // Crea il corpo della richiesta
+    // Create the request body
     const requestBody = {
       model: apiModelName,
       messages: messages,
@@ -258,7 +348,7 @@ export async function improveText(
       stream: false
     };
     
-    // Configura il timeout per la richiesta - Usa un timeout più lungo per modelli che potrebbero essere più lenti
+    // Configure the timeout for the request - Use a longer timeout for models that might be slower
     const isLargeModel = apiModelName.includes("12b") || apiModelName.includes("32b");
     const timeoutDuration = isLargeModel ? ServerConfig.API_TIMEOUT * 2 : ServerConfig.API_TIMEOUT;
     
@@ -266,7 +356,7 @@ export async function improveText(
     const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
     
     try {
-      // Esegui la richiesta
+      // Execute the request
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
@@ -276,32 +366,32 @@ export async function improveText(
         signal: controller.signal
       });
       
-      // Pulisci il timeout
+      // Clear the timeout
       clearTimeout(timeoutId);
       
-      // Verifica se la richiesta ha avuto successo
+      // Check if the request was successful
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`API response error: ${response.status} ${response.statusText} - ${errorText}`);
       }
       
-      // Ottieni la risposta JSON
+      // Get the JSON response
       const data = await response.json();
       
-      // Estrai il contenuto della risposta
+      // Extract the response content
       let content = data.choices && data.choices[0]?.message?.content;
       
-      // Se non c'è contenuto, restituisci un messaggio di errore
+      // If there's no content, return an error message
       if (!content) {
         throw new Error("No content in API response");
       }
       
-      // Salva la risposta nella cache
+      // Save the response in the cache
       responseCache.set(cacheKey, content);
       
       return content;
     } catch (fetchError) {
-      // Pulizia del timeout in caso di errore
+      // Clean up the timeout in case of error
       clearTimeout(timeoutId);
       throw fetchError;
     }
@@ -309,9 +399,9 @@ export async function improveText(
     console.error('Error improving text:', error);
     
     if (error instanceof DOMException && error.name === 'AbortError') {
-      return `Mi dispiace, il miglioramento del testo sta richiedendo troppo tempo. Il modello "${modelName}" potrebbe essere momentaneamente sovraccarico. Puoi attendere qualche minuto e riprovare o selezionare un modello più piccolo.`;
+      return `I'm sorry, but improving the text is taking too long. The "${modelName}" model might be temporarily overloaded. You can wait a few minutes and try again or select a smaller model.`;
     }
     
-    return `Mi dispiace, non sono riuscito a migliorare il testo. Errore: ${error instanceof Error ? error.message : String(error)}`;
+    return `I'm sorry, but I couldn't improve the text. Error: ${error instanceof Error ? error.message : String(error)}`;
   }
 }

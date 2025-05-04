@@ -2,12 +2,28 @@ import { useState, useRef, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { apiRequest } from "@/lib/queryClient";
-import { Message, Chat } from "@/lib/types";
 import { getSettings } from "@/lib/settingsStore";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { regenerateChatTitle } from "@/lib/titleGenerator";
-import { modelSupportsImages } from "@/lib/modelConfig"; // Nuova importazione
+import { modelSupportsImages } from "@/lib/modelConfig";
+import { formatWikipediaResultsForAI, searchWikipediaWithKeywords } from "@/services/wikipediaService";
+
+interface Message {
+  id: string;
+  chatId: string;
+  content: string;
+  isUserMessage: boolean;
+  createdAt: string;
+}
+
+interface Chat {
+  id: string;
+  title: string;
+  createdAt: string;
+  userId: string;
+  messages?: Message[];
+}
 
 interface UseMessageInputProps {
   chatId: string;
@@ -17,7 +33,6 @@ interface UseMessageInputProps {
 export function useMessageInput({ chatId, selectedModel }: UseMessageInputProps) {
   const isMobile = useIsMobile();
   const [message, setMessage] = useState("");
-  const [webSearchEnabled, setWebSearchEnabled] = useState(false);
   const { toast } = useToast();
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const titleProcessedRef = useRef(false);
@@ -25,8 +40,13 @@ export function useMessageInput({ chatId, selectedModel }: UseMessageInputProps)
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [isImprovingText, setIsImprovingText] = useState(false);
+  const [isSearchingWikipedia, setIsSearchingWikipedia] = useState(false);
   
-  // Verifica se il modello corrente supporta le immagini
+  // Get settings and webSearchEnabled value
+  const savedSettings = getSettings();
+  const [webSearchEnabled, setWebSearchEnabled] = useState(savedSettings.webSearchEnabled || false);
+  
+  // Check if the current model supports images
   const currentModelSupportsImages = modelSupportsImages(selectedModel);
 
   const { data: currentChat } = useQuery<Chat>({
@@ -39,12 +59,12 @@ export function useMessageInput({ chatId, selectedModel }: UseMessageInputProps)
     enabled: !!chatId,
   });
 
-  // Reset il flag quando cambia la chat
+  // Reset the flag when the chat changes
   useEffect(() => {
     titleProcessedRef.current = false;
   }, [chatId]);
 
-  // Effetto per sincronizzare il riferimento alla textarea
+  // Effect to synchronize the textarea reference
   useEffect(() => {
     const textarea = document.querySelector('textarea');
     if (textarea) {
@@ -52,16 +72,21 @@ export function useMessageInput({ chatId, selectedModel }: UseMessageInputProps)
     }
   }, []);
 
+  useEffect(() => {
+    // Reset the flag when chat changes
+    setIsImprovingText(false);
+  }, [chatId]);
+
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
-      // Ottieni le impostazioni correnti
+      // Get current settings
       const apiSettings = getSettings();
       
-      // ID temporanei per i messaggi
+      // Temporary IDs for messages
       const tempUserMessageId = `temp-user-${Date.now()}`;
       const tempAIMessageId = `temp-ai-${Date.now()}`;
       
-      // Messaggi temporanei
+      // Temporary messages
       const optimisticUserMessage = {
         id: tempUserMessageId,
         chatId,
@@ -73,12 +98,12 @@ export function useMessageInput({ chatId, selectedModel }: UseMessageInputProps)
       const thinkingAIMessage = {
         id: tempAIMessageId,
         chatId,
-        content: "Sta pensando...",
+        content: "Thinking...",
         isUserMessage: false,
         createdAt: new Date().toISOString()
       };
       
-      // Aggiorna la cache con i messaggi temporanei
+      // Update the cache with temporary messages
       const queryKey = [`/api/chats/${chatId}/messages`];
       const previousMessages = queryClient.getQueryData<Message[]>(queryKey) || [];
       
@@ -88,67 +113,100 @@ export function useMessageInput({ chatId, selectedModel }: UseMessageInputProps)
         thinkingAIMessage
       ]);
       
-      // Invia la richiesta al server
+      try {
+        // Search Wikipedia if enabled
+        let wikipediaResults = "";
+        if (apiSettings.webSearchEnabled) {
+          setIsSearchingWikipedia(true);
+          try {
+            console.log("Starting intelligent Wikipedia search for:", content);
+            
+            // Pass the selected model to the search function
+            const results = await searchWikipediaWithKeywords(content, 10, selectedModel);
+            
+            // Format the results for AI
+            wikipediaResults = formatWikipediaResultsForAI(results);
+            
+            console.log("Wikipedia search results with keywords:", results.length > 0 ? "found" : "none");
+          } catch (error) {
+            console.error("Error during Wikipedia search:", error);
+            // We don't block sending the message if the search fails
+            wikipediaResults = "Web search failed: service temporarily unavailable.";
+          } finally {
+            setIsSearchingWikipedia(false);
+          }
+        }
+
+        // Updated configuration with Wikipedia results
+        const updatedSettings = {
+          ...apiSettings,
+          webSearchEnabled: apiSettings.webSearchEnabled,
+          webSearchResults: wikipediaResults
+        };
+      
+        // Send the request to the server
       return apiRequest("POST", "/api/messages", {
         chatId,
         content,
         isUserMessage: true,
         modelName: selectedModel,
-        apiSettings
+          apiSettings: updatedSettings
       });
+      } catch (error) {
+        console.error("Error sending message:", error);
+        throw error;
+      }
     },
     onSuccess: async () => {
-      // Reset dell'input
+      // Reset input
       setMessage("");
       setAttachedFile(null);
       
       try {
-        // Aggiorna i messaggi
+        // Update messages
         await queryClient.invalidateQueries({ queryKey: [`/api/chats/${chatId}/messages`] });
         
-        // Controlla se abbiamo già elaborato questa chat
-        if (!titleProcessedRef.current && currentChat && currentChat.title === "Nuova Chat") {
-          console.log("[MessageInput] Verifico se è necessario generare un titolo per la chat");
+        // Check if we already processed this chat
+        if (!titleProcessedRef.current && currentChat && currentChat.title === "New Chat") {
+          console.log("[MessageInput] Checking if a title needs to be generated for the chat");
           
-          // Ottieni messaggi aggiornati
+          // Get updated messages
           const updatedMessages = await queryClient.fetchQuery<Message[]>({
             queryKey: [`/api/chats/${chatId}/messages`],
           });
           
-          // Filtra solo i messaggi utente (escludi quelli dell'AI)
+          // Filter only user messages (exclude AI messages)
           const userMessages = updatedMessages.filter(msg => msg.isUserMessage);
-          console.log(`[MessageInput] Messaggi utente trovati: ${userMessages.length}`);
+          console.log(`[MessageInput] User messages found: ${userMessages.length}`);
           
-          // Se ci sono esattamente 1 messaggio utente, genera il titolo
+          // If there are exactly 1 user message, generate the title
           if (userMessages.length === 1) {
-            console.log("[MessageInput] Primo messaggio utente rilevato, avvio generazione titolo");
-            titleProcessedRef.current = true; // Imposta il flag per evitare generazioni multiple
+            console.log("[MessageInput] First user message detected, starting title generation");
+            titleProcessedRef.current = true; // Set the flag to avoid multiple generations
             
-            // Ottieni le impostazioni correnti
-            const apiSettings = getSettings();
+            // Get current settings
+            const currentApiSettings = getSettings();
             
-            // Attendi un po' per assicurarti che il messaggio sia stato salvato completamente
+            // Wait a bit to make sure the message has been completely saved
             setTimeout(async () => {
-              // Passa il modello selezionato e le impostazioni alla funzione di generazione del titolo
+              // Pass the selected model and settings to the title generation function
               const success = await regenerateChatTitle(chatId, {
                 modelName: selectedModel,
-                temperature: apiSettings.temperature || 0.7,
-                apiKey: apiSettings.apiKey,
-                apiUrl: apiSettings.apiUrl || "",
-                apiVersion: apiSettings.apiVersion || ""
+                temperature: currentApiSettings.temperature || 0.7,
+                apiUrl: currentApiSettings.apiUrl || ""
               });
               
               if (success) {
-                // Aggiorna la query cache per riflettere il nuovo titolo
+                // Update the query cache to reflect the new title
                 await queryClient.invalidateQueries({ queryKey: [`/api/chats/${chatId}`] });
                 await queryClient.invalidateQueries({ queryKey: ["/api/chats"] });
-                console.log("[MessageInput] Titolo generato e cache aggiornata");
+                console.log("[MessageInput] Title generated and cache updated");
               }
             }, 800);
           }
         }
       } catch (error) {
-        console.error("[MessageInput] Errore durante l'elaborazione post-invio:", error);
+        console.error("[MessageInput] Error during post-processing:", error);
       }
     }
   });
@@ -156,72 +214,72 @@ export function useMessageInput({ chatId, selectedModel }: UseMessageInputProps)
   const improveTextMutation = useMutation({
     mutationFn: async (textToImprove: string) => {
       if (!textToImprove || textToImprove.trim() === "") {
-        throw new Error("Il testo è vuoto");
+        throw new Error("The text is empty");
       }
       
-      console.log("Invio richiesta per migliorare:", textToImprove);
+      console.log("Sending request to improve:", textToImprove);
       
-      // Ottieni le impostazioni correnti
+      // Get current settings
       const apiSettings = getSettings();
       
-      // Usiamo l'endpoint del server invece di chiamare direttamente l'API
+      // Use the server endpoint instead of calling the API directly
       const response = await apiRequest("POST", "/api/improve-text", {
         text: textToImprove,
         modelName: selectedModel,
         temperature: apiSettings.temperature || 0.7
       });
       
-      // Estrai il corpo JSON dalla risposta prima di elaborarlo
+      // Extract the JSON body from the response before processing it
       const responseData = await response.json();
       
-      console.log("Risposta ricevuta dal server:", responseData);
+      console.log("Response received from server:", responseData);
       
       if (!responseData || typeof responseData !== 'object' || !('improvedText' in responseData)) {
-        console.error("La risposta non contiene improvedText:", responseData);
-        throw new Error("Risposta API non valida");
+        console.error("The response doesn't contain improvedText:", responseData);
+        throw new Error("Invalid API response");
       }
       
       return responseData.improvedText;
     },
     onSuccess: (improvedText) => {
-      console.log("onSuccess chiamato con testo migliorato:", improvedText);
+      console.log("onSuccess called with improved text:", improvedText);
       
-      // Imposta il testo migliorato nella casella di input
+      // Set the improved text in the input box
       if (improvedText && typeof improvedText === 'string') {
         setMessage(improvedText);
-        console.log("Testo della casella aggiornato a:", improvedText);
+        console.log("Text box updated to:", improvedText);
         
-        // Forza un aggiornamento della textarea
+        // Force a textarea update
         setTimeout(() => {
-          // Adatta l'altezza della textarea
+          // Adjust textarea height
           if (textareaRef.current) {
             const textarea = textareaRef.current;
             textarea.style.height = 'auto';
             textarea.style.height = `${Math.min(textarea.scrollHeight, isMobile ? 80 : 120)}px`;
-            // Forza il focus e la selezione per assicurarsi che il testo sia visibile
+            // Force focus and selection to ensure the text is visible
             textarea.focus();
           }
         }, 50);
         
         toast({
-          title: "Testo migliorato",
-          description: "Il contenuto è stato migliorato con successo.",
+          title: "Text improved",
+          description: "The content has been successfully improved.",
         });
       } else {
-        console.error("improvedText è vuoto o non è una stringa:", improvedText);
+        console.error("improvedText is empty or not a string:", improvedText);
         toast({
-          title: "Errore",
-          description: "Il testo migliorato ricevuto non è valido.",
+          title: "Error",
+          description: "The received improved text is invalid.",
           variant: "destructive",
         });
       }
     },
     onError: (error) => {
-      console.error("Errore durante il miglioramento:", error);
+      console.error("Error during improvement:", error);
       
       toast({
-        title: "Errore",
-        description: `Impossibile migliorare il testo: ${error instanceof Error ? error.message : "Errore sconosciuto"}`,
+        title: "Error",
+        description: `Unable to improve the text: ${error instanceof Error ? error.message : "Unknown error"}`,
         variant: "destructive",
       });
     },
@@ -236,8 +294,8 @@ export function useMessageInput({ chatId, selectedModel }: UseMessageInputProps)
       improveTextMutation.mutate(message);
     } else {
       toast({
-        title: "Input richiesto",
-        description: "Inserisci del testo da migliorare.",
+        title: "Input required",
+        description: "Enter some text to improve.",
         variant: "destructive",
       });
     }
@@ -257,7 +315,7 @@ export function useMessageInput({ chatId, selectedModel }: UseMessageInputProps)
     }
   };
 
-  // Funzione per gestire il cambio del testo nella textarea e aggiornare il riferimento
+  // Function to handle textarea text change and update the reference
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(e.target.value);
     textareaRef.current = e.target;
@@ -265,9 +323,9 @@ export function useMessageInput({ chatId, selectedModel }: UseMessageInputProps)
     e.target.style.height = `${Math.min(e.target.scrollHeight, isMobile ? 80 : 120)}px`;
   };
 
-  // Gestisce la pressione dei tasti nella textarea
+  // Handles key presses in the textarea
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Enter senza Shift invia il messaggio
+    // Enter without Shift sends the message
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (message?.trim()) {
@@ -280,56 +338,72 @@ export function useMessageInput({ chatId, selectedModel }: UseMessageInputProps)
   };
 
   const toggleWebSearch = () => {
-    setWebSearchEnabled(!webSearchEnabled);
+    const newValue = !webSearchEnabled;
+    setWebSearchEnabled(newValue);
+    
+    // Update saved settings
+    const currentSettings = getSettings();
+    const updatedSettings = {
+      ...currentSettings,
+      webSearchEnabled: newValue
+    };
+    localStorage.setItem('apiSettings', JSON.stringify(updatedSettings));
+    
+    toast({
+      title: newValue ? "Web Search activated" : "Web Search deactivated",
+      description: newValue 
+        ? "Responses will include information from Wikipedia" 
+        : "Responses will no longer include external information"
+    });
   };
   
-  // Gestisce l'apertura del selettore di file
+  // Handles opening the file selector
   const handleAttachFile = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
   };
   
-  // Gestisce la selezione di un file
+  // Handles file selection
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Controlla se il file è un'immagine
+      // Check if the file is an image
       const isImage = file.type.startsWith('image/');
       
-      // Se è un'immagine ma il modello non supporta le immagini, mostra errore
+      // If it's an image but the model doesn't support images, show error
       if (isImage && !currentModelSupportsImages) {
         toast({
-          title: "Immagine non supportata",
-          description: "Il modello selezionato non supporta l'elaborazione di immagini",
+          title: "Image not supported",
+          description: "The selected model doesn't support image processing",
           variant: "destructive",
         });
-        // Reset dell'input file
+        // Reset the file input
         if (fileInputRef.current) fileInputRef.current.value = '';
         return;
       }
       
       setAttachedFile(file);
       toast({
-        title: "File allegato",
-        description: `${file.name} allegato con successo`,
+        title: "File attached",
+        description: `${file.name} successfully attached`,
       });
       
-      // Per ora, inseriamo solo il nome del file nel messaggio
+      // For now, we just insert the file name in the message
       setMessage(prev => prev + `\n[File: ${file.name}]`);
     }
   };
   
-  // Funzione per inserire un template di messaggio
+  // Function to insert a message template
   const insertTemplate = (templateMessage: string) => {
     setMessage(templateMessage);
     if (isMobile) {
-      // Focus sull'input dopo l'inserimento su mobile
+      // Focus on the input after insertion on mobile
       setTimeout(() => {
         if (textareaRef.current) {
           const textarea = textareaRef.current;
           textarea.focus();
-          // Imposta l'altezza dell'input in base al contenuto
+          // Set the input height based on the content
           textarea.style.height = 'auto';
           textarea.style.height = `${Math.min(textarea.scrollHeight, 80)}px`;
         }
@@ -343,10 +417,11 @@ export function useMessageInput({ chatId, selectedModel }: UseMessageInputProps)
     webSearchEnabled,
     setWebSearchEnabled,
     isImprovingText,
+    isSearchingWikipedia,
     textareaRef,
     fileInputRef,
     attachedFile,
-    currentModelSupportsImages, // Esponiamo questa nuova proprietà
+    currentModelSupportsImages,
     handleTextareaChange,
     handleKeyDown,
     handleSendMessage,

@@ -16,45 +16,45 @@ export const DesktopSuggestionButtons: React.FC<DesktopSuggestionButtonsProps> =
       <Button 
         variant="outline" 
         className="bg-[#101c38] hover:bg-primary/20 border-primary/20 text-sm h-8 rounded-xl transition-all duration-300 transform hover:scale-105"
-        onClick={() => setMessage("Descrivi la seguente immagine allegata.")}
+        onClick={() => setMessage("Describe the attached image.")}
       >
         <ImageIcon className="h-4 w-4 mr-2 text-primary" />
-        <span className="text-white/90">Descrivi immagine</span>
+        <span className="text-white/90">Describe image</span>
       </Button>
       <Button 
         variant="outline" 
         className="bg-[#101c38] hover:bg-primary/20 border-primary/20 text-sm h-8 rounded-xl transition-all duration-300 transform hover:scale-105"
-        onClick={() => setMessage("Puoi scrivere un esempio di codice React per una to-do list?")}
+        onClick={() => setMessage("Can you write a React code example for a to-do list?")}
       >
         <Code2Icon className="h-4 w-4 mr-2 text-primary" />
-        <span className="text-white/90">Codice</span>
+        <span className="text-white/90">Code</span>
       </Button>
       <Button 
         variant="outline" 
         className="bg-[#101c38] hover:bg-primary/20 border-primary/20 text-sm h-8 rounded-xl transition-all duration-300 transform hover:scale-105"
-        onClick={() => setMessage("Aiutami a creare un piano di studio per imparare il machine learning in 3 mesi.")}
+        onClick={() => setMessage("Help me create a study plan to learn machine learning in 3 months.")}
       >
         <FileIcon className="h-4 w-4 mr-2 text-primary" />
-        <span className="text-white/90">Fai un piano</span>
+        <span className="text-white/90">Make a plan</span>
       </Button>
       <Button 
         variant="outline" 
         className="bg-[#101c38] hover:bg-primary/20 border-primary/20 text-sm h-8 rounded-xl transition-all duration-300 transform hover:scale-105"
         onClick={() => {
           setWebSearchEnabled(true);
-          setMessage("Quali sono gli sviluppi più recenti nell'intelligenza artificiale generativa?");
+          setMessage("What are the most recent developments in generative AI?");
         }}
       >
         <NotebookTextIcon className="h-4 w-4 mr-2 text-primary" />
-        <span className="text-white/90">Notizie</span>
+        <span className="text-white/90">News</span>
       </Button>
       <Button 
         variant="outline" 
         className="bg-[#101c38] hover:bg-primary/20 border-primary/20 text-sm h-8 rounded-xl transition-all duration-300 transform hover:scale-105"
-        onClick={() => setMessage("Qual è la differenza tra machine learning e deep learning?")}
+        onClick={() => setMessage("What is the difference between machine learning and deep learning?")}
       >
         <PlusIcon className="h-4 w-4 mr-2 text-primary" />
-        <span className="text-white/90">Altro</span>
+        <span className="text-white/90">More</span>
       </Button>
     </div>
   );

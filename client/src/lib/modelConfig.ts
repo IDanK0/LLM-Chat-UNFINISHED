@@ -1,13 +1,13 @@
-// Configurazione centralizzata dei modelli
-// Questo file serve sia per il frontend che per il backend attraverso l'API
+// Centralized model configuration
+// This file serves both the frontend and backend through the API
 
 export interface ModelConfig {
-  displayName: string;  // Nome mostrato nell'interfaccia utente
-  apiName: string;      // Nome tecnico utilizzato per le chiamate API
-  supportsImages: boolean; // Indica se il modello supporta l'elaborazione di immagini
+  displayName: string;  // Name displayed in the user interface
+  apiName: string;      // Technical name used for API calls
+  supportsImages: boolean; // Indicates if the model supports image processing
 }
 
-// Array di tutti i modelli disponibili
+// Array of all available models
 export const availableModels: ModelConfig[] = [
   {
     displayName: "Qwen3 0.6b",
@@ -34,24 +34,24 @@ export const availableModels: ModelConfig[] = [
     apiName: "gemma-3-12b-it-qat",
     supportsImages: true
   }
-  // Per aggiungere un nuovo modello, basta inserire una nuova voce qui
+  // To add a new model, simply insert a new entry here
 ];
 
-// Modello predefinito
+// Default model
 export const defaultModel = availableModels[0].displayName;
 
-// Funzione helper per ottenere il nome API da un nome visualizzato
+// Helper function to get the API name from a display name
 export function getApiModelName(displayName: string): string {
   const model = availableModels.find(m => m.displayName === displayName);
-  return model ? model.apiName : availableModels[0].apiName; // Fallback al primo modello
+  return model ? model.apiName : availableModels[0].apiName; // Fallback to first model
 }
 
-// Funzione helper per verificare se un modello supporta le immagini
+// Helper function to check if a model supports images
 export function modelSupportsImages(displayName: string): boolean {
   const model = availableModels.find(m => m.displayName === displayName);
-  return model ? model.supportsImages : false; // Fallback a false per sicurezza
+  return model ? model.supportsImages : false; // Fallback to false for safety
 }
-// Genera la mappa dei modelli per la retrocompatibilità
+// Generates the model map for backward compatibility
 export const MODEL_NAME_MAP = availableModels.reduce((map, model) => {
   map[model.displayName] = model.apiName;
   return map;

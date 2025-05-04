@@ -6,8 +6,27 @@ import { insertChatSchema, insertMessageSchema } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { ServerConfig } from "./config";
+import extractKeywordsRouter from "./routes/extract-keywords"; // Import the router for keyword extraction
+
+/**
+ * Removes <think></think> tags from text
+ * @param text Text to filter
+ * @returns Filtered text
+ */
+function removeThinkingTags(text: string): string {
+  // Remove all <think> tags and their content
+  return text.replace(/<think>[\s\S]*?<\/think>/g, '')
+    // Remove any remaining tags
+    .replace(/<\/?think>/g, '')
+    // Normalize multiple whitespaces
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Register the router for keyword extraction
+  app.use("/api/extract-keywords", extractKeywordsRouter);
+
   // Get all chats for a user
   app.get("/api/chats", async (req: Request, res: Response) => {
     try {
@@ -22,7 +41,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get a specific chat
   app.get("/api/chats/:id", async (req: Request, res: Response) => {
     try {
-      const chatId = req.params.id; // Modificato: rimosso parseInt
+      const chatId = req.params.id; // Modified: removed parseInt
       const chat = await storage.getChat(chatId);
       
       if (!chat) {
@@ -49,7 +68,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add initial AI message
       await storage.createMessage({
         chatId: chat.id,
-        content: "Buon pomeriggio, come posso essere utile oggi?\n\nPuoi chiedermi qualsiasi cosa in italiano. Sono qui per aiutarti a trovare informazioni, scrivere contenuti o risolvere problemi.",
+        content: "Good afternoon, how can I help you today?\n\nYou can ask me anything. I'm here to help you find information, write content, or solve problems.",
         isUserMessage: false
       });
       
@@ -65,7 +84,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update a chat
   app.patch("/api/chats/:id", async (req: Request, res: Response) => {
     try {
-      const chatId = req.params.id; // Modificato: rimosso parseInt
+      const chatId = req.params.id; // Modified: removed parseInt
       const chat = await storage.getChat(chatId);
       
       if (!chat) {
@@ -82,7 +101,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete a chat
   app.delete("/api/chats/:id", async (req: Request, res: Response) => {
     try {
-      const chatId = req.params.id; // Modificato: rimosso parseInt
+      const chatId = req.params.id; // Modified: removed parseInt
       const deleted = await storage.deleteChat(chatId);
       
       if (!deleted) {
@@ -98,7 +117,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get messages for a chat
   app.get("/api/chats/:id/messages", async (req: Request, res: Response) => {
     try {
-      const chatId = req.params.id; // Modificato: rimosso parseInt
+      const chatId = req.params.id; // Modified: removed parseInt
       const messages = await storage.getMessages(chatId);
       res.json(messages);
     } catch (error) {
@@ -110,7 +129,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/messages", async (req: Request, res: Response) => {
     try {
       const messageData = insertMessageSchema.parse(req.body);
-      const { modelName, apiSettings } = req.body; // Estrai il nome del modello e le impostazioni API dalla richiesta
+      const { modelName, apiSettings } = req.body; // Extract model name and API settings from the request
       
       // Create user message
       const userMessage = await storage.createMessage(messageData);
@@ -140,18 +159,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // NUOVO ENDPOINT: Migliora il testo dell'utente
+  // NEW ENDPOINT: Improve user text
   app.post("/api/improve-text", async (req: Request, res: Response) => {
     try {
       const { text, modelName, apiSettings } = req.body;
       
       if (!text || typeof text !== 'string') {
-        return res.status(400).json({ message: "Il testo da migliorare è richiesto" });
+        return res.status(400).json({ message: "Text to improve is required" });
       }
       
-      console.log("Richiesta ricevuta per migliorare testo:", text.substring(0, 50) + (text.length > 50 ? '...' : ''));
+      console.log("Request received to improve text:", text.substring(0, 50) + (text.length > 50 ? '...' : ''));
       
-      // Ottieni il nome del modello tecnico dalla mappa usando il nome UI o usa il default
+      // Get the technical model name from the map using the UI name or use the default
       let apiModelName: string;
       if (modelName === "Gemma 3 12b it Instruct") {
         apiModelName = "gemma-3-12b-it";
@@ -159,28 +178,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         apiModelName = ServerConfig.MODEL_NAME_MAP[modelName] || "meta-llama-3.1-8b-instruct";
       }
       
-      // Usa l'URL dell'API dalle impostazioni o quello di default dalla configurazione centralizzata
+      // Use the API URL from settings or the default from centralized configuration
       const apiUrl = apiSettings?.apiUrl || ServerConfig.DEFAULT_API_URL;
       
       console.log(`Improving text with model: ${apiModelName} at URL: ${apiUrl}`);
       
-      // Crea messaggi per il miglioramento del prompt in base al modello
+      // Create messages for prompt improvement based on the model
       let messages: any[];
       
       if (apiModelName === "gemma-3-12b-it") {
-        // Per Gemma, usa solo messaggi utente senza sistema
+        // For Gemma, use only user messages without system
         messages = [
           {
             role: 'user',
-            content: `Sei un esperto di prompt engineering. Il tuo compito è migliorare il testo che ti invierò per renderlo più chiaro, specifico e strutturato. Rispondi solo con la versione migliorata del prompt, senza spiegazioni o altro testo. Ecco il testo da migliorare: "${text}"`
+            content: `You are a prompt engineering expert. Your task is to improve the text I'll send you to make it clearer, more specific, and structured. Respond only with the improved version of the prompt, without explanations or additional text. Here's the text to improve: "${text}"`
           }
         ];
       } else {
-        // Per altri modelli, usa il formato standard con messaggio di sistema
+        // For other models, use the standard format with system message
         messages = [
           {
             role: 'system',
-            content: 'Sei un esperto di prompt engineering. Il tuo compito è migliorare il testo dell\'utente per renderlo più chiaro, specifico e strutturato per ottenere risposte migliori da un modello di AI. Rispondi solo con la versione migliorata del prompt, senza spiegazioni o altro testo.'
+            content: 'You are a prompt engineering expert. Your task is to improve the user\'s text to make it clearer, more specific, and structured to get better responses from an AI model. Respond only with the improved version of the prompt, without explanations or additional text.'
           },
           {
             role: 'user',
@@ -200,7 +219,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           model: apiModelName,
           messages: messages,
           temperature: apiSettings?.temperature || 0.7,
-          max_tokens: apiSettings?.maxTokens || -1,
+          max_tokens: -1, // Always -1 to remove token limitations
           stream: false
         })
       });
@@ -215,23 +234,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const data = await response.json();
       console.log("API response data structure:", JSON.stringify(data).substring(0, 100) + "...");
       
-      // CORREZIONE: Estrai il testo dalla struttura corretta del formato OpenAI
-      // La risposta ha il formato: { choices: [{ message: { content: "..." } }] }
+      // CORRECTION: Extract text from the correct OpenAI format structure
+      // The response has the format: { choices: [{ message: { content: "..." } }] }
       if (!data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
-        console.error("Formato di risposta API non valido - choices non trovato:", data);
-        throw new Error("Formato di risposta API non valido: choices non trovato");
+        console.error("Invalid API response format - choices not found:", data);
+        throw new Error("Invalid API response format: choices not found");
       }
       
       const choice = data.choices[0];
       if (!choice || !choice.message || !choice.message.content) {
-        console.error("Formato di risposta API non valido - message o content non trovato:", choice);
-        throw new Error("Formato di risposta API non valido: message.content non trovato");
+        console.error("Invalid API response format - message or content not found:", choice);
+        throw new Error("Invalid API response format: message.content not found");
       }
       
-      const improvedText = choice.message.content;
+      // Filter any thinking tags from the response
+      const improvedText = removeThinkingTags(choice.message.content);
       console.log("Improved text extracted:", improvedText.substring(0, 50) + (improvedText.length > 50 ? '...' : ''));
       
-      // Invia la risposta al client nel formato atteso
+      // Send the response to the client in the expected format
       const responseObj = { improvedText };
       console.log("Sending response to client:", { improvedTextLength: improvedText.length });
       
@@ -239,8 +259,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error improving text:', error);
       res.status(500).json({ 
-        message: "Impossibile migliorare il testo", 
-        error: error instanceof Error ? error.message : "Errore sconosciuto" 
+        message: "Unable to improve text", 
+        error: error instanceof Error ? error.message : "Unknown error" 
       });
     }
   });

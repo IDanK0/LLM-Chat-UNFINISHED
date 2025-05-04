@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Message } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Textarea } from "@/components/ui/textarea";
 import AnimatedText from "./AnimatedText";
 import { useIsMobile } from "@/hooks/use-mobile";
+
+// Define the Message type directly
+interface Message {
+  id: number;
+  chatId: string;
+  content: string;
+  isUserMessage: boolean;
+  createdAt: string;
+}
 
 interface ChatInterfaceProps {
   chatId: string;
@@ -29,62 +37,62 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
     queryKey: [`/api/chats/${chatId}/messages`],
   });
 
-  // Funzione per copiare il messaggio negli appunti
+  // Function to copy message to clipboard
   const copyToClipboard = (content: string) => {
     navigator.clipboard.writeText(content).then(
       () => {
         toast({
-          title: "Copiato",
-          description: "Il messaggio è stato copiato negli appunti",
+          title: "Copied",
+          description: "The message has been copied to clipboard",
         });
       },
       (err) => {
-        console.error("Errore durante la copia", err);
+        console.error("Error during copy", err);
         toast({
-          title: "Errore",
-          description: "Impossibile copiare il messaggio",
+          title: "Error",
+          description: "Unable to copy message",
           variant: "destructive",
         });
       }
     );
   };
 
-  // Inizia modifica messaggio
+  // Start message edit
   const handleEditStart = (message: Message) => {
     setEditingMessage(message);
     setEditedContent(message.content);
     setIsEditDialogOpen(true);
   };
 
-  // Gestisce l'eliminazione del messaggio
+  // Handle message deletion
   const handleDeleteStart = (message: Message) => {
     setMessageToDelete(message);
     setIsDeleteDialogOpen(true);
   };
 
-  // Conferma ed esegue l'eliminazione del messaggio
+  // Confirm and execute message deletion
   const handleDeleteConfirm = () => {
     if (messageToDelete && messages) {
-      // In una app reale, chiameremmo un'API per eliminare il messaggio
+      // In a real app, we would call an API to delete the message
       const updatedMessages = messages.filter(msg => msg.id !== messageToDelete.id);
       
-      // Aggiorniamo manualmente la cache di React Query
+      // Manually update the React Query cache
       queryClient.setQueryData([`/api/chats/${chatId}/messages`], updatedMessages);
       
       toast({
-        title: "Messaggio eliminato",
-        description: "Il messaggio è stato eliminato con successo"
+        title: "Message deleted",
+        description: "The message has been successfully deleted"
       });
       setIsDeleteDialogOpen(false);
       setMessageToDelete(null);
     }
   };
 
-  // Simula la salvataggio del messaggio modificato (in una app reale, sarà necessario un endpoint API)
+  // Simulates saving the edited message (in a real app, an API endpoint would be needed)
   const handleSaveEdit = () => {
     if (editingMessage && editedContent.trim()) {
-      // In una app reale, qui chiameremmo un'API per aggiornare il messaggio
-      // Qui simuliamo l'aggiornamento aggiornando la cache locale
+      // In a real app, we would call an API to update the message
+      // Here we simulate the update by updating the local cache
       if (editingMessage && messages) {
         const updatedMessages = messages.map(msg => 
           msg.id === editingMessage.id 
@@ -92,13 +100,13 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
             : msg
         );
 
-        // Aggiorniamo manualmente la cache di React Query
+        // Manually update the React Query cache
         queryClient.setQueryData([`/api/chats/${chatId}/messages`], updatedMessages);
       }
 
       toast({
-        title: "Modifica salvata",
-        description: "Il messaggio è stato modificato con successo"
+        title: "Edit saved",
+        description: "The message has been successfully modified"
       });
       setIsEditDialogOpen(false);
       setEditingMessage(null);
@@ -132,7 +140,7 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
       isMobile && "p-1 chat-interface"
     )}>
       <div className="max-w-3xl mx-auto">
-        {/* Mostra i messaggi della chat se ce ne sono */}
+        {/* Show chat messages if there are any */}
         {messages.length > 0 && messages.map((message) => (
           <div
             key={message.id}
@@ -145,7 +153,7 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
             )}
           >
             <div className="flex w-full items-start">
-              {/* Avatar - Dimensioni ottimizzate */}
+              {/* Avatar - Optimized dimensions */}
               <div className={cn(
                 "flex-shrink-0 mr-2 rounded-full flex items-center justify-center text-sm self-start mt-0.5 chat-message-avatar",
                 message.isUserMessage 
@@ -153,17 +161,17 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
                   : "bg-primary/30 text-primary",
                 isMobile ? "w-6 h-6 text-xs" : "w-7 h-7"
               )}>
-                {message.isUserMessage ? "Tu" : "AI"}
+                {message.isUserMessage ? "You" : "AI"}
               </div>
 
-              {/* Contenuto del messaggio con pulsanti integrati */}
+              {/* Message content with integrated buttons */}
               <div className="flex-1 min-w-0 relative">
                 {message.isUserMessage ? (
                   <p className={cn(
-                    "text-foreground leading-relaxed py-1 break-words whitespace-pre-wrap",
+                    "message-content text-foreground leading-relaxed py-1",
                     "text-white/90",
                     isMobile && "mobile-text",
-                    "pr-24" /* Aggiunto padding a destra per fare spazio ai pulsanti */
+                    "pr-24" /* Added right padding to make space for the buttons */
                   )}>
                     {message.content}
                   </p>
@@ -171,15 +179,15 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
                   <AnimatedText
                     text={message.content}
                     className={cn(
-                      "text-foreground leading-relaxed py-1 break-words whitespace-pre-wrap",
+                      "text-foreground leading-relaxed py-1",
                       "text-white",
                       isMobile && "mobile-text",
-                      "pr-24" /* Aggiunto padding a destra per fare spazio ai pulsanti */
+                      "pr-24" /* Added right padding to make space for the buttons */
                     )}
                   />
                 )}
                 
-                {/* Pulsanti di azione per il messaggio - riposizionati in BASSO a destra */}
+                {/* Action buttons for the message - repositioned at the BOTTOM right */}
                 <div className={cn(
                   "absolute bottom-0 right-0",
                   isMobile 
@@ -194,7 +202,7 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
                       isMobile && "h-6 w-6 bg-primary/10"
                     )}
                     onClick={() => copyToClipboard(message.content)}
-                    title="Copia messaggio"
+                    title="Copy message"
                   >
                     <CopyIcon className={cn("h-3.5 w-3.5 text-primary", isMobile && "h-3 w-3")} />
                   </Button>
@@ -206,7 +214,7 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
                       isMobile && "h-6 w-6 bg-primary/10"
                     )}
                     onClick={() => handleEditStart(message)}
-                    title="Modifica messaggio"
+                    title="Edit message"
                   >
                     <PencilIcon className={cn("h-3.5 w-3.5 text-primary", isMobile && "h-3 w-3")} />
                   </Button>
@@ -218,7 +226,7 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
                       isMobile && "h-6 w-6 bg-primary/10"
                     )}
                     onClick={() => handleDeleteStart(message)}
-                    title="Elimina messaggio"
+                    title="Delete message"
                   >
                     <Trash2Icon className={cn("h-3.5 w-3.5 text-primary", isMobile && "h-3 w-3")} />
                   </Button>
@@ -228,14 +236,14 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
           </div>
         ))}
       </div>
-      {/* Dialog per modificare un messaggio - ottimizzato per mobile */}
+      {/* Dialog to edit a message - optimized for mobile */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className={cn(
           "bg-sidebar border-primary/30 text-white",
           isMobile ? "max-w-[95vw]" : "max-w-md"
         )}>
           <DialogHeader>
-            <DialogTitle>Modifica messaggio</DialogTitle>
+            <DialogTitle>Edit message</DialogTitle>
           </DialogHeader>
           <Textarea
             value={editedContent}
@@ -254,7 +262,7 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
                 isMobile && "w-full"
               )}
             >
-              Annulla
+              Cancel
             </Button>
             <Button 
               onClick={handleSaveEdit}
@@ -264,22 +272,22 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
                 isMobile && "w-full"
               )}
             >
-              Salva
+              Save
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Dialog per confermare l'eliminazione di un messaggio - ottimizzato per mobile */}
+      {/* Dialog to confirm message deletion - optimized for mobile */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className={cn(
           "bg-sidebar border-primary/30 text-white",
           isMobile ? "max-w-[95vw]" : "max-w-md"
         )}>
           <DialogHeader>
-            <DialogTitle>Conferma eliminazione</DialogTitle>
+            <DialogTitle>Confirm deletion</DialogTitle>
           </DialogHeader>
-          <p className="mt-2 text-white/80">Sei sicuro di voler eliminare questo messaggio? Questa azione non può essere annullata.</p>
+          <p className="mt-2 text-white/80">Are you sure you want to delete this message? This action cannot be undone.</p>
           <DialogFooter className={cn(
             "mt-4",
             isMobile && "dialog-footer flex-col space-y-2"
@@ -292,7 +300,7 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
                 isMobile && "w-full"
               )}
             >
-              Annulla
+              Cancel
             </Button>
             <Button 
               onClick={handleDeleteConfirm}
@@ -302,7 +310,7 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
                 isMobile && "w-full"
               )}
             >
-              Elimina
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>

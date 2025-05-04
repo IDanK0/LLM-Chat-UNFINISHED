@@ -9,7 +9,7 @@ export const users = pgTable("users", {
 });
 
 export const chats = pgTable("chats", {
-  id: text("id").primaryKey(), // Modificato: da serial a text
+  id: text("id").primaryKey(), // Modified: from serial to text
   userId: integer("user_id").notNull(),
   title: text("title").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull()
@@ -17,7 +17,7 @@ export const chats = pgTable("chats", {
 
 export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),
-  chatId: text("chat_id").notNull(), // Modificato: da integer a text
+  chatId: text("chat_id").notNull(), // Modified: from integer to text
   content: text("content").notNull(),
   isUserMessage: boolean("is_user_message").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull()

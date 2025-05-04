@@ -3,8 +3,9 @@ export interface ApiSettings {
   temperature: number;
   maxTokens: number;
   stream: boolean;
-  animationSpeed: number; // Nuova impostazione per la velocità dell'animazione (parole al secondo)
-  autoGenerateTitle: boolean; // Nuova impostazione per la generazione automatica dei titoli
+  animationSpeed: number; // New setting for animation speed (words per second)
+  autoGenerateTitle: boolean; // New setting for automatic title generation
+  webSearchEnabled: boolean; // New setting to enable/disable web search
 }
 
 const DEFAULT_SETTINGS: ApiSettings = {
@@ -12,15 +13,16 @@ const DEFAULT_SETTINGS: ApiSettings = {
   temperature: 0.7,
   maxTokens: -1,
   stream: true,
-  animationSpeed: 15,  // Default: 15 parole al secondo
-  autoGenerateTitle: true // Default: attivato
+  animationSpeed: 15,  // Default: 15 words per second
+  autoGenerateTitle: true, // Default: activated
+  webSearchEnabled: false // Default: deactivated
 };
 
 export function getSettings(): ApiSettings {
   try {
     const saved = localStorage.getItem('apiSettings');
     if (saved) {
-      // Assicurati che le impostazioni salvate abbiano tutti i campi necessari
+      // Ensure saved settings have all necessary fields
       const parsed = JSON.parse(saved);
       return {
         ...DEFAULT_SETTINGS,
@@ -28,7 +30,7 @@ export function getSettings(): ApiSettings {
       };
     }
   } catch (error) {
-    console.error('Errore nel caricamento delle impostazioni:', error);
+    console.error('Error loading settings:', error);
   }
   
   return DEFAULT_SETTINGS;
@@ -38,7 +40,7 @@ export function saveSettings(settings: ApiSettings): void {
   try {
     localStorage.setItem('apiSettings', JSON.stringify(settings));
   } catch (error) {
-    console.error('Errore nel salvataggio delle impostazioni:', error);
+    console.error('Error saving settings:', error);
   }
 }
 
@@ -46,7 +48,7 @@ export function resetSettings(): ApiSettings {
   try {
     localStorage.setItem('apiSettings', JSON.stringify(DEFAULT_SETTINGS));
   } catch (error) {
-    console.error('Errore nel reset delle impostazioni:', error);
+    console.error('Error resetting settings:', error);
   }
   return DEFAULT_SETTINGS;
 }

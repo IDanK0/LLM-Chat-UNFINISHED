@@ -51,18 +51,18 @@ export default function Chat() {
     },
   });
 
-  // Verifica se la chat è vuota e in tal caso la elimina
+  // Check if the chat is empty and if so, delete it
   useEffect(() => {
     if (!isLoadingMessages && !isLoadingChat && chatId && messages && messages.length === 0 && chat) {
-      console.log("Chat vuota rilevata. Eliminazione in corso...");
+      console.log("Empty chat detected. Deleting...");
       deleteChatMutation.mutate(chatId);
     }
   }, [chatId, messages, isLoadingMessages, isLoadingChat, chat, deleteChatMutation]);
   
-  // Reindirizza alla home se la chat non esiste (errore nella query o chat non trovata)
+  // Redirect to home if the chat doesn't exist (query error or chat not found)
   useEffect(() => {
     if ((!isLoadingChat && chatId && !chat) || isChatError) {
-      console.log("Chat non trovata. Reindirizzamento alla home...");
+      console.log("Chat not found. Redirecting to home...");
       setLocation('/');
     }
   }, [chatId, chat, isLoadingChat, isChatError, setLocation]);
@@ -129,13 +129,13 @@ export default function Chat() {
           </div>
           
           <div className="invisible w-8">
-            {/* Spazio vuoto per mantenere il modello centrato */}
+            {/* Empty space to keep the model centered */}
           </div>
         </header>
 
         {!chatId ? (
           <div className="flex-1 flex items-center justify-center">
-            <p className="text-muted-foreground">Seleziona una chat o creane una nuova</p>
+            <p className="text-muted-foreground">Select a chat or create a new one</p>
           </div>
         ) : (
           <>

@@ -10,8 +10,9 @@ interface MessageActionsProps {
   handleAttachFile: () => void;
   handleImproveText: () => void;
   isImprovingText: boolean;
+  isSearchingWikipedia?: boolean;
   hasMessageContent: boolean;
-  modelSupportsImages: boolean; // Nuova proprietà
+  modelSupportsImages: boolean;
 }
 
 export const MessageActions: React.FC<MessageActionsProps> = ({
@@ -21,8 +22,9 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
   handleAttachFile,
   handleImproveText,
   isImprovingText,
+  isSearchingWikipedia,
   hasMessageContent,
-  modelSupportsImages // Usiamo questa proprietà
+  modelSupportsImages
 }) => {
   return (
     <div className="flex items-center space-x-1 mr-1">
@@ -33,9 +35,14 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
         className={cn(
           "rounded-full transition-all duration-300",
           webSearchEnabled ? 'bg-primary/80 text-white shadow-md' : 'hover:bg-primary/20',
+          isSearchingWikipedia && webSearchEnabled && "animate-pulse",
           isMobile ? "h-6 w-6" : "h-7 w-7"
         )}
         onClick={toggleWebSearch}
+        disabled={isSearchingWikipedia}
+        title={webSearchEnabled 
+          ? "Disable Wikipedia search" 
+          : "Enable Wikipedia search to enrich responses with updated information"}
       >
         <GlobeIcon className={cn("text-white", isMobile ? "h-3 w-3" : "h-3.5 w-3.5")} />
       </Button>
@@ -50,8 +57,8 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
         )}
         onClick={handleAttachFile}
         title={modelSupportsImages 
-          ? "Allega file o immagini" 
-          : "Allega file (questo modello non supporta immagini)"}
+          ? "Attach files or images" 
+          : "Attach files (this model doesn't support images)"}
       >
         <PaperclipIcon className={cn(
           "text-white",
@@ -69,7 +76,7 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
           isImprovingText && "animate-pulse bg-primary/20"
         )}
         onClick={handleImproveText}
-        disabled={!hasMessageContent || isImprovingText}
+        disabled={!hasMessageContent || isImprovingText || isSearchingWikipedia}
       >
         <Wand2Icon className={cn(
           "text-white",

@@ -67,7 +67,7 @@ export default function Sidebar({ isMobile, isOpen, onClose, className }: Sideba
   const handleNewChat = async () => {
     try {
       const response = await apiRequest('POST', '/api/chats', { 
-        title: "Nuova Chat" 
+        title: "New Chat" 
       });
       const newChat = await response.json();
       // Invalidate chats query to refresh the list
@@ -81,8 +81,8 @@ export default function Sidebar({ isMobile, isOpen, onClose, className }: Sideba
     } catch (error) {
       console.error('Failed to create new chat', error);
       toast({
-        title: "Errore",
-        description: "Impossibile creare una nuova chat",
+        title: "Error",
+        description: "Unable to create a new chat",
         variant: "destructive"
       });
     }
@@ -102,16 +102,16 @@ export default function Sidebar({ isMobile, isOpen, onClose, className }: Sideba
       }
       
       toast({
-        title: "Chat eliminata",
-        description: "La chat è stata eliminata con successo"
+        title: "Chat deleted",
+        description: "The chat has been successfully deleted"
       });
       
       setIsDeleteDialogOpen(false);
     },
     onError: () => {
       toast({
-        title: "Errore",
-        description: "Impossibile eliminare la chat",
+        title: "Error",
+        description: "Unable to delete the chat",
         variant: "destructive"
       });
     }
@@ -126,14 +126,14 @@ export default function Sidebar({ isMobile, isOpen, onClose, className }: Sideba
       queryClient.invalidateQueries({ queryKey: ['/api/chats'] });
       setIsRenameDialogOpen(false);
       toast({
-        title: "Chat rinominata",
-        description: "La chat è stata rinominata con successo"
+        title: "Chat renamed",
+        description: "The chat has been successfully renamed"
       });
     },
     onError: () => {
       toast({
-        title: "Errore",
-        description: "Impossibile rinominare la chat",
+        title: "Error",
+        description: "Unable to rename the chat",
         variant: "destructive"
       });
     }
@@ -178,16 +178,16 @@ export default function Sidebar({ isMobile, isOpen, onClose, className }: Sideba
   
   const exportChatAsTxt = () => {
     toast({
-      title: "Chat esportata",
-      description: "La chat è stata esportata come file di testo"
+      title: "Chat exported",
+      description: "The chat has been exported as a text file"
     });
     setIsShareDialogOpen(false);
   };
   
   const exportChatAsPdf = () => {
     toast({
-      title: "Chat esportata",
-      description: "La chat è stata esportata come file PDF"
+      title: "Chat exported",
+      description: "The chat has been exported as PDF file"
     });
     setIsShareDialogOpen(false);
   };
@@ -248,14 +248,14 @@ export default function Sidebar({ isMobile, isOpen, onClose, className }: Sideba
             onClick={handleNewChat}
           >
             <PlusIcon className="h-5 w-5 mr-2" />
-            Nuova chat
+            New chat
           </Button>
           
           <div className="relative">
             <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
-              placeholder="Cerca"
+              placeholder="Search"
               className="w-full bg-white/10 border-border pl-9"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -265,13 +265,13 @@ export default function Sidebar({ isMobile, isOpen, onClose, className }: Sideba
       
         <div className="flex flex-col overflow-y-auto flex-1">
           <div className="p-4 border-t border-b border-border text-xs font-medium text-muted-foreground text-center">
-            Tutte le chat
+            All chats
           </div>
           
           <div className="p-2 text-sm">
             {todayChats.length > 0 && (
               <>
-                <div className="font-medium px-2 py-1 text-muted-foreground">Oggi</div>
+                <div className="font-medium px-2 py-1 text-muted-foreground">Today</div>
                 {todayChats.map(chat => (
                   <div 
                     key={chat.id}
@@ -320,7 +320,7 @@ export default function Sidebar({ isMobile, isOpen, onClose, className }: Sideba
             
             {recentChats.length > 0 && (
               <>
-                <div className="font-medium px-2 py-1 text-muted-foreground mt-1">Ultimi 30 giorni</div>
+                <div className="font-medium px-2 py-1 text-muted-foreground mt-1">Last 30 days</div>
                 {recentChats.map(chat => (
                   <div 
                     key={chat.id}
@@ -369,7 +369,7 @@ export default function Sidebar({ isMobile, isOpen, onClose, className }: Sideba
             
             {filteredChats.length === 0 && (
               <div className="px-2 py-4 text-center text-muted-foreground">
-                Nessuna chat trovata
+                No chats found
               </div>
             )}
           </div>
@@ -382,61 +382,61 @@ export default function Sidebar({ isMobile, isOpen, onClose, className }: Sideba
             onClick={() => setIsSettingsDialogOpen(true)}
           >
             <SettingsIcon className="h-5 w-5 mr-2 text-primary" />
-            Impostazioni
+            Settings
           </Button>
         </div>
       </aside>
       
-      {/* Dialog per eliminare una chat */}
+      {/* Dialog to delete a chat */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="bg-sidebar border-primary/30 text-white">
           <DialogHeader>
-            <DialogTitle>Elimina chat</DialogTitle>
+            <DialogTitle>Delete chat</DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              Sei sicuro di voler eliminare questa chat? Questa azione non può essere annullata.
+              Are you sure you want to delete this chat? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
-              Annulla
+              Cancel
             </Button>
             <Button variant="destructive" onClick={confirmDeleteChat}>
-              Elimina
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
       
-      {/* Dialog per rinominare una chat */}
+      {/* Dialog to rename a chat */}
       <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
         <DialogContent className="bg-sidebar border-primary/30 text-white">
           <DialogHeader>
-            <DialogTitle>Rinomina chat</DialogTitle>
+            <DialogTitle>Rename chat</DialogTitle>
           </DialogHeader>
           <Input
-            placeholder="Nuovo nome"
+            placeholder="New name"
             value={newChatTitle}
             onChange={(e) => setNewChatTitle(e.target.value)}
             className="bg-white/10 border-primary/30"
           />
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsRenameDialogOpen(false)}>
-              Annulla
+              Cancel
             </Button>
             <Button onClick={confirmRenameChat}>
-              Salva
+              Save
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
       
-      {/* Dialog per condividere una chat */}
+      {/* Dialog to share a chat */}
       <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
         <DialogContent className="bg-sidebar border-primary/30 text-white">
           <DialogHeader>
-            <DialogTitle>Condividi chat</DialogTitle>
+            <DialogTitle>Share chat</DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              Scegli in quale formato vuoi esportare la chat
+              Choose in which format you want to export the chat
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4">
@@ -446,7 +446,7 @@ export default function Sidebar({ isMobile, isOpen, onClose, className }: Sideba
               onClick={exportChatAsTxt}
             >
               <FileTextIcon className="mr-2 h-4 w-4 text-primary" />
-              <span>Esporta come file di testo (.txt)</span>
+              <span>Export as text file (.txt)</span>
             </Button>
             <Button 
               variant="outline"
@@ -454,13 +454,13 @@ export default function Sidebar({ isMobile, isOpen, onClose, className }: Sideba
               onClick={exportChatAsPdf}
             >
               <FileIcon className="mr-2 h-4 w-4 text-primary" />
-              <span>Esporta come PDF (.pdf)</span>
+              <span>Export as PDF (.pdf)</span>
             </Button>
           </div>
         </DialogContent>
       </Dialog>
       
-      {/* Dialog per le impostazioni */}
+      {/* Dialog for settings */}
       <SettingsDialog open={isSettingsDialogOpen} onOpenChange={setIsSettingsDialogOpen} />
     </>
   );

@@ -6,11 +6,11 @@ export function MobileOptimization() {
 
   useEffect(() => {
     if (isMobile) {
-      // Aggiunge classe solo su mobile
+      // Add class only on mobile
       document.body.classList.add('mobile-device');
       document.documentElement.classList.add('mobile-device');
       
-      // Gestisce il viewport solo per dispositivi mobili
+      // Handle viewport only for mobile devices
       const viewportMeta = document.querySelector('meta[name="viewport"]');
       if (viewportMeta) {
         viewportMeta.setAttribute(
@@ -24,9 +24,9 @@ export function MobileOptimization() {
         document.head.appendChild(meta);
       }
       
-      // Funzione per sistemare il layout solo su mobile
+      // Function to fix layout only on mobile
       const fixMobileLayout = () => {
-        // Rimuovi height: 100% e aggiungi height: 100vh
+        // Remove height: 100% and add height: 100vh
         document.documentElement.style.height = '100vh';
         document.body.style.height = '100vh';
         
@@ -58,27 +58,27 @@ export function MobileOptimization() {
           (inputContainer as HTMLElement).style.flexShrink = '0';
         }
         
-        // Imposta overflow hidden sul body per evitare scroll indesiderati
+        // Set overflow hidden on body to prevent unwanted scrolling
         document.body.style.overflow = 'hidden';
         
-        // Aggiungi classe al contenitore chat+input se non presente
+        // Add class to chat+input container if not present
         const mobileContainer = document.querySelector('.chat-interface')?.parentElement;
         if (mobileContainer && !mobileContainer.classList.contains('mobile-chat-container')) {
           mobileContainer.classList.add('mobile-chat-container');
         }
       };
       
-      // Esegui solo su mobile e quando il DOM cambia
+      // Execute only on mobile and when DOM changes
       fixMobileLayout();
       window.addEventListener('resize', fixMobileLayout);
       
-      // Observer per applicare i fix quando il DOM cambia (es: nuovi messaggi)
+      // Observer to apply fixes when DOM changes (e.g., new messages)
       const observer = new MutationObserver(() => {
         fixMobileLayout();
       });
       observer.observe(document.body, { childList: true, subtree: true });
       
-      // Impedisci zoom su iOS
+      // Prevent zoom on iOS
       const preventZoom = (e: TouchEvent) => {
         if ('scale' in e && e.scale !== 1) { 
           e.preventDefault(); 
@@ -87,7 +87,7 @@ export function MobileOptimization() {
       document.addEventListener('touchmove', preventZoom as any, { passive: false });
       
       return () => {
-        // Rimuovi tutto quando il componente viene smontato
+        // Remove everything when component is unmounted
         document.body.classList.remove('mobile-device');
         document.documentElement.classList.remove('mobile-device');
         window.removeEventListener('resize', fixMobileLayout);
@@ -98,11 +98,11 @@ export function MobileOptimization() {
         document.body.style.height = '';
       };
     } else {
-      // Su desktop, assicurati che non ci siano residui di stile mobile
+      // On desktop, ensure there are no mobile style residues
       document.body.classList.remove('mobile-device');
       document.documentElement.classList.remove('mobile-device');
       
-      // Ripristina viewport per desktop
+      // Restore viewport for desktop
       const viewportMeta = document.querySelector('meta[name="viewport"]');
       if (viewportMeta) {
         viewportMeta.setAttribute(
@@ -113,5 +113,5 @@ export function MobileOptimization() {
     }
   }, [isMobile]);
   
-  return null; // Questo componente non renderizza nulla
+  return null; // This component doesn't render anything
 }

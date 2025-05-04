@@ -1,14 +1,14 @@
-// Importazione della configurazione condivisa dei modelli
+// Import shared model configuration
 import { MODEL_NAME_MAP } from '../client/src/lib/modelConfig';
 
-// Configurazione centralizzata per API e altre impostazioni server
+// Centralized configuration for API and other server settings
 export const ServerConfig = {
-  // URL di default per l'API
+  // Default URL for the API
   DEFAULT_API_URL: 'http://127.0.0.1:1234/v1/chat/completions',
   
-  // Altre configurazioni server possono essere aggiunte qui
-  API_TIMEOUT: 3600000, // aumentato a 60 minuti
+  // Other server configurations can be added here
+  API_TIMEOUT: 3600000, // increased to 60 minutes
   
-  // Mappa dei modelli importata dalla configurazione condivisa
+  // Model map imported from shared configuration
   MODEL_NAME_MAP
 };

@@ -4,9 +4,9 @@
 
 @import "./mobile-optimization.css";
 
-/* Altri stili globali... */
+/* Other global styles... */
 
-/* Definizioni di base per il tema dark */
+/* Base definitions for dark theme */
 @layer base {
   :root {
     --background: 222.2 84% 4.9%;
@@ -42,7 +42,7 @@
   }
 }
 
-/* Stili personalizzati */
+/* Custom styles */
 .textarea-glow:focus {
   box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.2), 0 0 8px 0 rgba(59, 130, 246, 0.2) !important;
 }
