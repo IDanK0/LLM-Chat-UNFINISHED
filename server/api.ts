@@ -148,7 +148,7 @@ export async function generateAIResponse(
         model: apiModelName,
         messages: llamaMessages,
         temperature: settings?.temperature ?? 0.7,
-        max_tokens: -1,
+        max_tokens: settings?.maxTokens ?? -1,
         stream: false
       };
       const response = await fetch(apiUrl, {
@@ -268,8 +268,8 @@ When web search is enabled, use the provided 'Potentially Relevant Web Search Re
       model: apiModelName,
       messages: adaptedMessages,
       temperature: settings?.temperature ?? 0.7,
-      max_tokens: -1, // Always -1 to remove token limitations
-      stream: false // Explicitly set to false
+      max_tokens: settings?.maxTokens ?? -1, // Token limit from site settings, default unlimited (-1)
+      stream: false
     };
     
     // Log the request for debugging

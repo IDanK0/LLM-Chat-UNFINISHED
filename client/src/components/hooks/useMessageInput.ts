@@ -6,7 +6,7 @@ import { getSettings } from "@/lib/settingsStore";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { regenerateChatTitle } from "@/lib/titleGenerator";
-import { modelSupportsImages } from "@/lib/modelConfig";
+import { modelSupportsImages, modelSupportsWeb } from "@/lib/modelConfig";
 import { formatWikipediaResultsForAI, searchWikipediaWithKeywords } from "@/services/wikipediaService";
 
 interface Message {
@@ -48,7 +48,22 @@ export function useMessageInput({ chatId, selectedModel }: UseMessageInputProps)
   
   // Check if the current model supports images
   const currentModelSupportsImages = modelSupportsImages(selectedModel);
-
+  // Check if the current model supports web search
+  const currentModelSupportsWeb = modelSupportsWeb(selectedModel);
+  
+  // Reset webSearchEnabled if the selected model doesn't support web search
+  useEffect(() => {
+    if (!currentModelSupportsWeb && webSearchEnabled) {
+      setWebSearchEnabled(false);
+      const currentSettings = getSettings();
+      const updatedSettings = {
+        ...currentSettings,
+        webSearchEnabled: false
+      };
+      localStorage.setItem('apiSettings', JSON.stringify(updatedSettings));
+    }
+  }, [selectedModel]);
+  
   const { data: currentChat } = useQuery<Chat>({
     queryKey: [`/api/chats/${chatId}`],
     enabled: !!chatId,
@@ -76,6 +91,13 @@ export function useMessageInput({ chatId, selectedModel }: UseMessageInputProps)
     // Reset the flag when chat changes
     setIsImprovingText(false);
   }, [chatId]);
+
+  // After message clear, reset textarea height to auto
+  useEffect(() => {
+    if (message === "" && textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
+  }, [message]);
 
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
@@ -118,6 +140,14 @@ export function useMessageInput({ chatId, selectedModel }: UseMessageInputProps)
         let wikipediaResults = "";
         if (apiSettings.webSearchEnabled) {
           setIsSearchingWikipedia(true);
+          // Show 'Searching Wikipedia...' in the optimistic AI message
+          {
+            const currentMsgs = queryClient.getQueryData<Message[]>(queryKey) ?? [];
+            const updatedMsgs = currentMsgs.map(msg =>
+              msg.id === tempAIMessageId ? { ...msg, content: "Searching Wikipedia..." } : msg
+            );
+            queryClient.setQueryData<Message[]>(queryKey, updatedMsgs);
+          }
           try {
             console.log("Starting intelligent Wikipedia search for:", content);
             
@@ -133,6 +163,14 @@ export function useMessageInput({ chatId, selectedModel }: UseMessageInputProps)
             // We don't block sending the message if the search fails
             wikipediaResults = "Web search failed: service temporarily unavailable.";
           } finally {
+            // Revert optimistic AI message back to 'Thinking...'
+            {
+              const currentMsgs = queryClient.getQueryData<Message[]>(queryKey) ?? [];
+              const updatedMsgs = currentMsgs.map(msg =>
+                msg.id === tempAIMessageId ? { ...msg, content: "Thinking..." } : msg
+              );
+              queryClient.setQueryData<Message[]>(queryKey, updatedMsgs);
+            }
             setIsSearchingWikipedia(false);
           }
         }
@@ -306,11 +344,6 @@ export function useMessageInput({ chatId, selectedModel }: UseMessageInputProps)
     if (message?.trim()) {
       const currentMessage = message;
       setMessage("");
-      // Reset textarea height
-      const textarea = e.currentTarget.querySelector('textarea');
-      if (textarea) {
-        textarea.style.height = isMobile ? '28px' : '36px';
-      }
       sendMessageMutation.mutate(currentMessage);
     }
   };
@@ -331,7 +364,6 @@ export function useMessageInput({ chatId, selectedModel }: UseMessageInputProps)
       if (message?.trim()) {
         const currentMessage = message;
         setMessage("");
-        e.currentTarget.style.height = isMobile ? '28px' : '36px';
         sendMessageMutation.mutate(currentMessage);
       }
     }
@@ -422,6 +454,7 @@ export function useMessageInput({ chatId, selectedModel }: UseMessageInputProps)
     fileInputRef,
     attachedFile,
     currentModelSupportsImages,
+    currentModelSupportsWeb,
     handleTextareaChange,
     handleKeyDown,
     handleSendMessage,

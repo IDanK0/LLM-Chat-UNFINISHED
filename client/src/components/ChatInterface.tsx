@@ -179,21 +179,16 @@ export default function ChatInterface({ chatId }: ChatInterfaceProps) {
                   <MarkdownContent
                     content={message.content}
                     className={cn(
-                      "text-foreground leading-tight pt-1 pb-0",
+                      "text-foreground leading-relaxed py-1",
                       "text-white",
-                      isMobile && "mobile-text",
+                      isMobile ? "mobile-text" : "-mt-0.5",
                       "pr-24" /* right padding for buttons */
                     )}
                   />
                 )}
                 
                 {/* Action buttons for the message - repositioned at the BOTTOM right */}
-                <div className={cn(
-                  "absolute bottom-0 right-0",
-                  isMobile 
-                    ? "message-actions space-x-1" 
-                    : "opacity-0 group-hover:opacity-100 transition-opacity duration-300 space-x-1"
-                )}>
+                <div className="absolute bottom-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 space-x-1">
                   <Button
                     variant="ghost"
                     size="icon"

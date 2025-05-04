@@ -4,6 +4,7 @@
  */
 
 import { createLogger } from './logger';
+import { getSettings } from "@/lib/settingsStore";
 
 // Create a specific logger for the Wikipedia service
 const logger = createLogger('Wikipedia');
@@ -66,6 +67,8 @@ export async function extractKeywords(question: string, modelName?: string): Pro
     logger.info(`No hashtags found, using AI for extraction...`);
     
     logger.debug(`Selected model: ${modelName || "default"}`);
+    // Get site settings to use maxTokens limit
+    const apiSettings = getSettings();
     const response = await fetch(AI_EXTRACT_ENDPOINT, {
       method: 'POST',
       headers: {
@@ -74,6 +77,7 @@ export async function extractKeywords(question: string, modelName?: string): Pro
       body: JSON.stringify({
         text: question,
         modelName: modelName || undefined, // Use the model selected by the user, if available
+        maxTokens: apiSettings.maxTokens // Token limit from site settings
       }),
     });
     

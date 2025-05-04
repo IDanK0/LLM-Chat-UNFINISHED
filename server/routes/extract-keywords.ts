@@ -20,7 +20,7 @@ const router = Router();
  */
 router.post("/", async (req, res) => {
   try {
-    const { text, modelName } = req.body;
+    const { text, modelName, maxTokens } = req.body;
 
     if (!text || typeof text !== "string") {
       return res.status(400).json({ error: "Missing or invalid text" });
@@ -38,11 +38,11 @@ Example output: ["keyword1", "keyword2", "keyword3"]
 TEXT: "${text}"
 `;
 
-    // Call the model with low temperature for more deterministic results
+    // Call the model with low temperature and token limit from settings
     const response = await provider.chat({
       messages: [{ role: "user", content: prompt }],
       temperature: 0.1,
-      // We don't specify max_tokens to use the default value of -1
+      max_tokens: typeof maxTokens === 'number' ? maxTokens : -1
     });
 
     // Extract keywords from the output

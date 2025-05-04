@@ -13,6 +13,7 @@ interface MessageActionsProps {
   isSearchingWikipedia?: boolean;
   hasMessageContent: boolean;
   modelSupportsImages: boolean;
+  modelSupportsWeb: boolean;
 }
 
 export const MessageActions: React.FC<MessageActionsProps> = ({
@@ -24,7 +25,8 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
   isImprovingText,
   isSearchingWikipedia,
   hasMessageContent,
-  modelSupportsImages
+  modelSupportsImages,
+  modelSupportsWeb
 }) => {
   return (
     <div className="flex items-center space-x-1 mr-1">
@@ -39,10 +41,12 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
           isMobile ? "h-6 w-6" : "h-7 w-7"
         )}
         onClick={toggleWebSearch}
-        disabled={isSearchingWikipedia}
-        title={webSearchEnabled 
-          ? "Disable Wikipedia search" 
-          : "Enable Wikipedia search to enrich responses with updated information"}
+        disabled={!modelSupportsWeb || isSearchingWikipedia}
+        title={!modelSupportsWeb
+          ? "Web search not supported by this model"
+          : webSearchEnabled
+            ? "Disable Wikipedia search"
+            : "Enable Wikipedia search to enrich responses with updated information"}
       >
         <GlobeIcon className={cn("text-white", isMobile ? "h-3 w-3" : "h-3.5 w-3.5")} />
       </Button>

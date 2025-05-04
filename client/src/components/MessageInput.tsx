@@ -5,6 +5,8 @@ import { MessageForm } from "./MessageForm";
 import { MobileSuggestionDropdown } from "./MobileSuggestionDropdown";
 import { DesktopSuggestionButtons } from "./DesktopSuggestionButtons";
 import { MessageActions } from "./MessageActions";
+import { Button } from "@/components/ui/button";
+import { GlobeIcon, PaperclipIcon } from "lucide-react";
 
 interface MessageInputProps {
   chatId: string;
@@ -22,6 +24,7 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
     textareaRef,
     fileInputRef,
     currentModelSupportsImages,
+    currentModelSupportsWeb,
     handleTextareaChange,
     handleKeyDown,
     handleSendMessage,
@@ -35,64 +38,74 @@ export default function MessageInput({ chatId, selectedModel }: MessageInputProp
   } = useMessageInput({ chatId, selectedModel });
 
   return (
-    <div className={cn(
-      "border-t border-border bg-background p-4",
-      isMobile && "message-input-container p-2"
-    )}>
-      <div className="max-w-3xl mx-auto">
-        <MessageForm
-          message={message}
-          onSubmit={handleSendMessage}
-          onChange={handleTextareaChange}
-          onKeyDown={handleKeyDown}
-          webSearchEnabled={webSearchEnabled}
-          toggleWebSearch={toggleWebSearch}
-          handleAttachFile={handleAttachFile}
-          handleImproveText={handleImproveText}
-          isImprovingText={isImprovingText}
-          isSearchingWikipedia={isSearchingWikipedia}
-          isMobile={isMobile}
-          fileInputRef={fileInputRef}
-          onFileSelect={handleFileSelect}
-          isPending={sendMessageMutation.isPending}
-          modelSupportsImages={currentModelSupportsImages}
-          ref={textareaRef}
-        />
+    <>  {/* Mobile-fragment wrapper */}
+      <div className={cn(
+        "border-t border-border bg-background pt-4 pb-2 px-4",
+        isMobile ? "message-input-container p-2" : ""
+      )}>
+        <div className={cn(
+          "mx-auto w-full",
+          isMobile ? "max-w-full" : "max-w-3xl"
+        )}>
+          <MessageForm
+            message={message}
+            onSubmit={handleSendMessage}
+            onChange={handleTextareaChange}
+            onKeyDown={handleKeyDown}
+            webSearchEnabled={webSearchEnabled}
+            toggleWebSearch={toggleWebSearch}
+            handleAttachFile={handleAttachFile}
+            handleImproveText={handleImproveText}
+            isImprovingText={isImprovingText}
+            isSearchingWikipedia={isSearchingWikipedia}
+            isMobile={isMobile}
+            fileInputRef={fileInputRef}
+            onFileSelect={handleFileSelect}
+            isPending={sendMessageMutation.isPending}
+            modelSupportsImages={currentModelSupportsImages}
+            modelSupportsWeb={currentModelSupportsWeb}
+            ref={textareaRef}
+          />
 
-        {/* Container for mobile buttons that appear below the textbox */}
-        {isMobile && (
-          <div className="flex items-center justify-center mt-1 space-x-2">
-            {/* Mobile Message Actions (search, attachments, improving buttons) */}
-            <div className="flex items-center">
-              <MessageActions
-                isMobile={isMobile}
-                webSearchEnabled={webSearchEnabled}
-                toggleWebSearch={toggleWebSearch}
-                handleAttachFile={handleAttachFile}
-                handleImproveText={handleImproveText}
-                isImprovingText={isImprovingText}
-                isSearchingWikipedia={isSearchingWikipedia}
-                hasMessageContent={!!message?.trim()}
-                modelSupportsImages={currentModelSupportsImages}
+          {/* Buttons visible only on large screens */}
+          {!isMobile && (
+            <div className="my-1.5">
+              <DesktopSuggestionButtons 
+                setMessage={setMessage}
+                setWebSearchEnabled={setWebSearchEnabled}
               />
             </div>
-            
-            {/* Dropdown menu for suggestions on mobile devices */}
-            <MobileSuggestionDropdown 
-              insertTemplate={insertTemplate}
-              setWebSearchEnabled={setWebSearchEnabled}
-            />
-          </div>
-        )}
-
-        {/* Buttons visible only on large screens */}
-        {!isMobile && (
-          <DesktopSuggestionButtons 
-            setMessage={setMessage}
+          )}
+        </div>
+      </div>
+      {/* Mobile bottom action row: web search, attach, suggestions */}
+      {isMobile && (
+        <div className="flex items-center justify-center my-1.5 space-x-2">
+          <Button
+            type="button"
+            variant={webSearchEnabled ? "default" : "ghost"}
+            size="icon"
+            onClick={toggleWebSearch}
+            disabled={!currentModelSupportsWeb || isSearchingWikipedia}
+            title={!currentModelSupportsWeb ? "Web search not supported" : webSearchEnabled ? "Disable web search" : "Enable web search"}
+          >
+            <GlobeIcon className="text-white h-5 w-5" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={handleAttachFile}
+            title={currentModelSupportsImages ? "Attach image" : "Attach file"}
+          >
+            <PaperclipIcon className="text-white h-5 w-5" />
+          </Button>
+          <MobileSuggestionDropdown 
+            insertTemplate={insertTemplate}
             setWebSearchEnabled={setWebSearchEnabled}
           />
-        )}
-      </div>
-    </div>
+        </div>
+      )}
+    </>
   );
 }

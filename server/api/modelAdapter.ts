@@ -62,7 +62,7 @@ export class ModelProvider {
         model: apiModelName,
         messages: options.messages as LlamaMessage[],
         temperature: options.temperature ?? 0.7,
-        max_tokens: -1, // Always -1 to remove token limitations
+        max_tokens: options.max_tokens ?? -1, // Token limit from options, default unlimited
         stream: false
       };
       
