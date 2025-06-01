@@ -137,42 +137,95 @@ export async function generateAIResponse(
     if (!messages || messages.length === 0) {
       return "There are no messages to process.";
     }
+    
+    // Get the technical model name from the helper function
+    const apiModelName = getApiModelName(modelName);
+    const apiUrl = settings?.apiUrl || ServerConfig.DEFAULT_API_URL;
+    
     // If web search is disabled, call the model directly with standard chat format
     if (!settings?.webSearchEnabled) {
-      // Prepare messages for Llama
-      const llamaMessages = convertMessagesToLlamaFormat(messages, modelName);
-      const apiModelName = getApiModelName(modelName);
-      const apiUrl = settings?.apiUrl || ServerConfig.DEFAULT_API_URL;
       console.log(`Generating response without web search using model: ${apiModelName}`);
-      const requestBody = {
-        model: apiModelName,
-        messages: llamaMessages,
-        temperature: settings?.temperature ?? 0.7,
-        max_tokens: settings?.maxTokens ?? -1,
-        stream: false
-      };
+      
+      let requestBody;
+      
+      // MODIFICATO: Gestione speciale per i modelli Gemma
+      if (apiModelName.includes("gemma")) {
+        // Per i modelli Gemma, usa un formato semplice con un solo messaggio utente
+        // che include il contesto della conversazione
+        
+        // Formatta la conversazione come testo
+        let conversationText = "Previous conversation:\n\n";
+        
+        // Prendi gli ultimi 6 messaggi per mantenere la richiesta leggera
+        const recentMessages = messages.slice(-6);
+        
+        for (const message of recentMessages) {
+          const role = message.isUserMessage ? "User" : "Assistant";
+          conversationText += `${role}: ${message.content.trim()}\n\n`;
+        }
+        
+        // Aggiungi la richiesta esplicita per la risposta
+        conversationText += "\nBased on the conversation above, please respond as the assistant.";
+        
+        requestBody = {
+          model: apiModelName,
+          messages: [
+            {
+              role: 'user',
+              content: conversationText
+            }
+          ],
+          temperature: settings?.temperature ?? 0.7,
+          max_tokens: settings?.maxTokens ?? 2048,
+          stream: false
+        };
+      } else {
+        // Per gli altri modelli, usa il formato standard
+        const llamaMessages = convertMessagesToLlamaFormat(messages, modelName);
+        requestBody = {
+          model: apiModelName,
+          messages: llamaMessages,
+          temperature: settings?.temperature ?? 0.7,
+          max_tokens: settings?.maxTokens ?? -1,
+          stream: false
+        };
+      }
+      
+      console.log(`Request body (simplified):`, JSON.stringify(requestBody).substring(0, 500) + "...");
+      
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody)
       });
+      
       if (!response.ok) {
         const text = await response.text();
         throw new Error(`API error: ${response.status} ${response.statusText} - ${text}`);
       }
+      
       const data = await response.json();
-      let content = data.choices?.[0]?.message?.content;
+      let content;
+      
+      // Estrai il contenuto dalla risposta in base al formato del modello
+      if (apiModelName.includes("gemma")) {
+        // Per i modelli Gemma, cerca il contenuto nel formato corretto
+        content = data.choices?.[0]?.message?.content;
+        
+        // Log per debug
+        console.log("Gemma response structure:", JSON.stringify(data).substring(0, 500) + "...");
+      } else {
+        content = data.choices?.[0]?.message?.content;
+      }
+      
       if (!content) throw new Error('No content in API response');
+      
       // Clean and return
       content = content.replace(/^(Assistente|Assistant):\s*/i, '').trim();
       return removeThinkingTags(content);
     }
-    // Get the technical model name from the helper function
-    const apiModelName = getApiModelName(modelName);
     
-    // Use the API URL from settings or the default from centralized configuration
-    const apiUrl = settings?.apiUrl || ServerConfig.DEFAULT_API_URL;
-    
+    // Se web search è abilitato, usa il formato di richiesta alternativo
     console.log(`Generating response using model: ${apiModelName} at ${apiUrl}`);
     
     // If web search is disabled, strip any 'Citations:' sections from previous AI messages
@@ -258,19 +311,38 @@ Respond exclusively with the markdown-formatted answer in the same language as t
 When web search is enabled, use the provided 'Potentially Relevant Web Search Results' to enrich your response. Prefix your answer with "**Answer:**". For each fact you include, add an inline citation in the format [n](URL) immediately after it. After completing the answer, include a "**Citations:**" section listing **all** the sources you received (even if some were not cited), each as "[n]: [Title](URL)". Use **at least 4** citations and there is no maximum limit.`
       : baseSystemPrompt;
 
-    const adaptedMessages: LlamaMessage[] = [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: conversationText }
-    ];
+    let requestBody;
     
-    // Create the request body using the same format as improveText
-    const requestBody = {
-      model: apiModelName,
-      messages: adaptedMessages,
-      temperature: settings?.temperature ?? 0.7,
-      max_tokens: settings?.maxTokens ?? -1, // Token limit from site settings, default unlimited (-1)
-      stream: false
-    };
+    // MODIFICATO: Gestione speciale per i modelli Gemma
+    if (apiModelName.includes("gemma")) {
+      // Per i modelli Gemma, usa un formato semplice con un solo messaggio utente
+      requestBody = {
+        model: apiModelName,
+        messages: [
+          {
+            role: 'user',
+            content: conversationText
+          }
+        ],
+        temperature: settings?.temperature ?? 0.7,
+        max_tokens: settings?.maxTokens ?? 2048,
+        stream: false
+      };
+    } else {
+      // Per gli altri modelli, usa il formato standard
+      const adaptedMessages = [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: conversationText }
+      ];
+      
+      requestBody = {
+        model: apiModelName,
+        messages: adaptedMessages,
+        temperature: settings?.temperature ?? 0.7,
+        max_tokens: settings?.maxTokens ?? -1,
+        stream: false
+      };
+    }
     
     // Log the request for debugging
     console.log(`Request body (simplified):`, JSON.stringify(requestBody).substring(0, 500) + "...");
@@ -307,7 +379,15 @@ When web search is enabled, use the provided 'Potentially Relevant Web Search Re
       const data = await response.json();
       
       // Extract the response content
-      let content = data.choices && data.choices[0]?.message?.content;
+      let content;
+      
+      // MODIFICATO: Gestione dell'estrazione del contenuto per i modelli Gemma
+      if (apiModelName.includes("gemma")) {
+        content = data.choices?.[0]?.message?.content;
+        console.log("Gemma response structure:", JSON.stringify(data).substring(0, 500) + "...");
+      } else {
+        content = data.choices?.[0]?.message?.content;
+      }
       
       // If there's no content, return an error message
       if (!content) {
@@ -386,29 +466,6 @@ export async function improveText(
     
     console.log(`Improving text with model: ${apiModelName} at URL: ${apiUrl}`);
     
-    // Create messages for prompt improvement - all models use the same format
-    const messages: LlamaMessage[] = [
-      {
-        role: 'system',
-        content: `You are a prompt engineering expert. Your task is to rewrite the user's prompt to make it clearer, more detailed, and better structured, with the goal of getting more precise and relevant responses from an AI model.
-
-When rewriting the prompt, make sure to:
-1. Organize information logically and in a structured way
-2. Use headings, bullet points or numbered lists when appropriate
-3. Highlight key concepts with appropriate formatting (bold, italics)
-4. Add adequate spacing to improve readability
-5. Maintain a well-organized and easy-to-read format
-
-IMPORTANT: Preserve the original language of the prompt. If the user writes in Italian, respond in Italian. If they write in English, respond in English, and so on.
-
-Return exclusively the optimized version of the prompt, without adding explanations or additional text.`
-      },
-      {
-        role: 'user',
-        content: text
-      }
-    ];
-    
     // Cache implementation for repeated requests
     const cacheKey = JSON.stringify({ text, model: apiModelName, action: 'improve' });
     const cachedResponse = responseCache.get(cacheKey);
@@ -417,14 +474,44 @@ Return exclusively the optimized version of the prompt, without adding explanati
       return cachedResponse;
     }
     
-    // Create the request body
-    const requestBody = {
-      model: apiModelName,
-      messages: messages,
-      temperature: settings?.temperature ?? 0.7,
-      max_tokens: settings?.maxTokens ?? 1000,
-      stream: false
-    };
+    let requestBody;
+    
+    // MODIFICATO: Gestione speciale per i modelli Gemma
+    if (apiModelName.includes("gemma")) {
+      // Per i modelli Gemma, usa un formato semplice con un solo messaggio utente
+      requestBody = {
+        model: apiModelName,
+        messages: [
+          {
+            role: 'user',
+            content: `You are a prompt engineering expert. Your task is to improve the text I'll send you to make it clearer, more specific, and structured. Respond only with the improved version of the prompt, without explanations or additional text. Here's the text to improve: "${text}"`
+          }
+        ],
+        temperature: settings?.temperature ?? 0.7,
+        max_tokens: settings?.maxTokens ?? 2048,
+        stream: false
+      };
+    } else {
+      // Per gli altri modelli, usa il formato standard con messaggio di sistema
+      const messages = [
+        {
+          role: 'system',
+          content: 'You are a prompt engineering expert. Your task is to improve the user\'s text to make it clearer, more specific, and structured to get better responses from an AI model. Respond only with the improved version of the prompt, without explanations or additional text.'
+        },
+        {
+          role: 'user',
+          content: text
+        }
+      ];
+      
+      requestBody = {
+        model: apiModelName,
+        messages: messages,
+        temperature: settings?.temperature ?? 0.7,
+        max_tokens: settings?.maxTokens ?? 1000,
+        stream: false
+      };
+    }
     
     // Configure the timeout for the request - Use a longer timeout for models that might be slower
     const isLargeModel = apiModelName.includes("12b") || apiModelName.includes("32b");
@@ -457,7 +544,15 @@ Return exclusively the optimized version of the prompt, without adding explanati
       const data = await response.json();
       
       // Extract the response content
-      let content = data.choices && data.choices[0]?.message?.content;
+      let content;
+      
+      // MODIFICATO: Gestione dell'estrazione del contenuto per i modelli Gemma
+      if (apiModelName.includes("gemma")) {
+        content = data.choices?.[0]?.message?.content;
+        console.log("Gemma response structure:", JSON.stringify(data).substring(0, 500) + "...");
+      } else {
+        content = data.choices?.[0]?.message?.content;
+      }
       
       // If there's no content, return an error message
       if (!content) {

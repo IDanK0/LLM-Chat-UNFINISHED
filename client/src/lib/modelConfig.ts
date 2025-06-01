@@ -24,7 +24,7 @@ export const availableModels: ModelConfig[] = [
   },
   {
     displayName: "Gemma 3 4b it",
-    apiName: "gemma-3-4b-it-qat",
+    apiName: "google/gemma-3-4b",
     supportsImages: true,
     supportsWeb: false
   },
