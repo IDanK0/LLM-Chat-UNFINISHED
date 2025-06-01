@@ -39,8 +39,8 @@ This project was developed as a web interface for interacting with language mode
 
 1. Clone the repository
 ```bash
-git clone https://github.com/username/llm-chat-unfinished.git
-cd llm-chat-unfinished
+git clone https://github.com/IDanK0/LLM-Chat-UNFINISHED
+cd LLM-Chat-UNFINISHED
 ```
 
 2. Install dependencies
