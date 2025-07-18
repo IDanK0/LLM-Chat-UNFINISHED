@@ -1,6 +1,12 @@
-import { getApiModelName } from '../../client/src/lib/modelConfig';
-import { ServerConfig } from '../config';
+import { getApiModelName, getModelProvider } from '../../client/src/lib/modelConfig';
 import { createLogger } from '../utils/logger';
+import { 
+  configureApiForProvider, 
+  removeThinkingTags, 
+  createTimeoutHandler, 
+  handleApiError,
+  ApiSettings 
+} from '../utils/apiHelpers';
 
 // Dedicated logger for the Model Adapter
 const logger = createLogger('ModelAdapter');
@@ -17,32 +23,18 @@ interface ChatResponse {
 }
 
 /**
- * Removes <think></think> tags from text
- * @param text Text to filter
- * @returns Filtered text
- */
-function removeThinkingTags(text: string): string {
-  // Remove all <think> tags and their content
-  return text.replace(/<think>[\s\S]*?<\/think>/g, '')
-    // Remove any remaining tags
-    .replace(/<\/?think>/g, '')
-    // Normalize multiple whitespaces
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-/**
  * Adapter for the AI model provider
  * Provides a unified interface to interact with AI models
  */
 export class ModelProvider {
   private modelName: string;
-  private apiUrl: string;
+  private config: { url: string; headers: Record<string, string> };
   
-  constructor(modelName?: string) {
+  constructor(modelName?: string, settings?: ApiSettings) {
     this.modelName = modelName || "Llama 3.1 8b Instruct";
-    this.apiUrl = ServerConfig.DEFAULT_API_URL;
-    logger.debug(`Provider created for model: ${this.modelName}`);
+    this.config = configureApiForProvider(this.modelName, settings);
+    
+    logger.debug(`Provider created for model: ${this.modelName}, URL: ${this.config.url}`);
   }
   
   /**
@@ -53,28 +45,43 @@ export class ModelProvider {
     temperature?: number;
     max_tokens?: number;
   }): Promise<ChatResponse> {
+    const { controller, timeoutId } = createTimeoutHandler(this.modelName);
+    
     try {
       const apiModelName = getApiModelName(this.modelName);
-      logger.info(`Sending request to model: ${apiModelName}`);
+      const provider = getModelProvider(this.modelName);
+      logger.info(`Sending request to model: ${apiModelName} via ${provider}`);
+      
+      // Determine the appropriate max_tokens value based on provider
+      let maxTokens: number;
+      if (provider === 'deepseek' || provider === 'openrouter') {
+        // For cloud APIs, use a reasonable default (they don't accept -1)
+        maxTokens = options.max_tokens && options.max_tokens > 0 ? options.max_tokens : 1000;
+      } else {
+        // For local APIs, use -1 to indicate no limit, or the user's setting
+        maxTokens = options.max_tokens ?? -1;
+      }
       
       // Create the request body
       const requestBody = {
         model: apiModelName,
         messages: options.messages as LlamaMessage[],
         temperature: options.temperature ?? 0.7,
-        max_tokens: options.max_tokens ?? -1, // Token limit from options, default unlimited
+        max_tokens: maxTokens,
         stream: false
       };
       
-      // Execute the request
       logger.debug(`Request parameters: temperature=${requestBody.temperature}, max_tokens=${requestBody.max_tokens}`);
-      const response = await fetch(this.apiUrl, {
+      
+      // Execute the request
+      const response = await fetch(this.config.url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestBody)
+        headers: this.config.headers,
+        body: JSON.stringify(requestBody),
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -97,11 +104,13 @@ export class ModelProvider {
         }
       };
     } catch (error) {
+      clearTimeout(timeoutId);
       logger.error(`Error in model call ${this.modelName}:`, error);
+      
       // Return a fallback response in case of error
       return {
         message: {
-          content: "An error occurred while processing the request."
+          content: handleApiError(error, this.modelName)
         }
       };
     }
@@ -111,9 +120,10 @@ export class ModelProvider {
 /**
  * Gets a provider for the specified model
  * @param modelName Model name (optional)
+ * @param settings API settings containing keys and URLs
  * @returns Model provider
  */
-export function getProviderForModel(modelName?: string): ModelProvider {
+export function getProviderForModel(modelName?: string, settings?: ApiSettings): ModelProvider {
   logger.debug(`Provider requested for model: ${modelName || "default"}`);
-  return new ModelProvider(modelName);
+  return new ModelProvider(modelName, settings);
 } 

@@ -18,8 +18,10 @@ import {
   DownloadIcon,
   CopyIcon,
   FileIcon,
-  SettingsIcon
+  SettingsIcon,
+  AlertTriangle
 } from "lucide-react";
+import { ConnectionStatusCompact } from "./ConnectionStatus";
 import {
   Dialog,
   DialogContent,
@@ -90,7 +92,7 @@ export default function Sidebar({ isMobile, isOpen, onClose, className }: Sideba
   
   // Delete chat mutation
   const deleteChatMutation = useMutation({
-    mutationFn: async (id: number) => {
+    mutationFn: async (id: string) => {
       return apiRequest('DELETE', `/api/chats/${id}`);
     },
     onSuccess: () => {
@@ -261,6 +263,27 @@ export default function Sidebar({ isMobile, isOpen, onClose, className }: Sideba
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+          
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="flex-1 bg-white/5 hover:bg-white/10 border-border"
+              onClick={() => setIsSettingsDialogOpen(true)}
+            >
+              <SettingsIcon className="h-4 w-4 mr-2" />
+              Settings
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="flex-1 bg-white/5 hover:bg-white/10 border-border"
+              onClick={() => window.open('/diagnostics', '_blank')}
+            >
+              <AlertTriangle className="h-4 w-4 mr-2" />
+              Diagnostics
+            </Button>
+          </div>
         </div>
       
         <div className="flex flex-col overflow-y-auto flex-1">
@@ -375,7 +398,12 @@ export default function Sidebar({ isMobile, isOpen, onClose, className }: Sideba
           </div>
         </div>
         
-        <div className="p-4 border-t border-border mt-auto">
+        {/* Connection Status at the bottom */}
+        <div className="p-3 border-t border-border bg-sidebar/50">
+          <ConnectionStatusCompact />
+        </div>
+        
+        <div className="p-4 border-t border-border">
           <Button 
             variant="outline" 
             className="w-full bg-[#101c38] hover:bg-primary/20 border-primary/20 text-white flex items-center justify-center"

@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { ApiSettings, getSettings, saveSettings, resetSettings } from "@/lib/settingsStore";
+import { availableModels } from "@/lib/modelConfig";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SettingsIcon, RefreshCwIcon, SaveIcon, XIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -106,20 +108,130 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
         
         <div className="py-4 space-y-5 sm:space-y-6 lg:space-y-8 overflow-y-auto max-h-[60vh] sm:max-h-[65vh] pr-2"
             style={{ scrollbarWidth: 'thin', scrollbarColor: '#3b82f6 transparent' }}>
+          
+          {/* Default Model Selection */}
+          <div className="settings-section space-y-2">
+            <Label htmlFor="defaultModel" className="text-white text-sm sm:text-base font-medium">Default Model</Label>
+            <Select value={settings.defaultModel} onValueChange={(value) => updateSettings("defaultModel", value)}>
+              <SelectTrigger className="bg-white/10 border-primary/30 text-white hover:border-primary/50 focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 transition-all">
+                <SelectValue placeholder="Select default model" />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-800 border-primary/30 text-white">
+                {availableModels.map((model) => (
+                  <SelectItem key={model.displayName} value={model.displayName} className="hover:bg-primary/20 focus:bg-primary/20">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs px-2 py-1 rounded-full bg-primary/20">
+                        {model.provider}
+                      </span>
+                      {model.displayName}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
           {/* URL API */}
           <div className="settings-section space-y-2">
-            <Label htmlFor="apiUrl" className="text-white text-sm sm:text-base font-medium">URL API</Label>
+            <Label htmlFor="apiUrl" className="text-white text-sm sm:text-base font-medium">
+              Local API URL
+            </Label>
             <Input
               id="apiUrl"
               value={settings.apiUrl}
               onChange={(e) => updateSettings("apiUrl", e.target.value)}
               className="bg-white/10 border-primary/30 text-white hover:border-primary/50 focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 transition-all"
-              placeholder="Enter the API URL"
+              placeholder="http://127.0.0.1:1234/v1/chat/completions"
               style={{ 
                 height: controlSize === 'xs' ? '38px' : controlSize === 'sm' ? '40px' : '44px',
                 fontSize: controlSize === 'xs' ? '14px' : controlSize === 'sm' ? '15px' : '16px'
               }}
             />
+            <p className="text-xs sm:text-sm text-muted-foreground italic">
+              URL for local models (e.g., LM Studio, Ollama)
+            </p>
+          </div>
+          
+          {/* OpenRouter Configuration */}
+          <div className="settings-section space-y-3 p-3 sm:p-4 rounded-lg bg-gradient-to-br from-orange-500/10 to-red-400/5 border border-orange-500/20">
+            <div className="flex items-center gap-2">
+              <h3 className="text-white text-sm sm:text-base font-medium">OpenRouter Configuration</h3>
+              <span className="text-xs px-2 py-1 rounded-full bg-orange-500/20 text-orange-300">
+                Cloud
+              </span>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="openRouterApiKey" className="text-white text-sm">API Key</Label>
+              <Input
+                id="openRouterApiKey"
+                type="password"
+                value={settings.openRouterApiKey}
+                onChange={(e) => updateSettings("openRouterApiKey", e.target.value)}
+                className="bg-white/10 border-primary/30 text-white hover:border-primary/50 focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 transition-all"
+                placeholder="sk-or-v1-..."
+                style={{ 
+                  height: controlSize === 'xs' ? '38px' : controlSize === 'sm' ? '40px' : '44px',
+                  fontSize: controlSize === 'xs' ? '14px' : controlSize === 'sm' ? '15px' : '16px'
+                }}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="openRouterBaseUrl" className="text-white text-sm">Base URL</Label>
+              <Input
+                id="openRouterBaseUrl"
+                value={settings.openRouterBaseUrl}
+                onChange={(e) => updateSettings("openRouterBaseUrl", e.target.value)}
+                className="bg-white/10 border-primary/30 text-white hover:border-primary/50 focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 transition-all"
+                placeholder="https://openrouter.ai/api/v1"
+                style={{ 
+                  height: controlSize === 'xs' ? '38px' : controlSize === 'sm' ? '40px' : '44px',
+                  fontSize: controlSize === 'xs' ? '14px' : controlSize === 'sm' ? '15px' : '16px'
+                }}
+              />
+            </div>
+          </div>
+          
+          {/* Deepseek Configuration */}
+          <div className="settings-section space-y-3 p-3 sm:p-4 rounded-lg bg-gradient-to-br from-blue-500/10 to-purple-400/5 border border-blue-500/20">
+            <div className="flex items-center gap-2">
+              <h3 className="text-white text-sm sm:text-base font-medium">Deepseek Configuration</h3>
+              <span className="text-xs px-2 py-1 rounded-full bg-blue-500/20 text-blue-300">
+                Cloud
+              </span>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="deepseekApiKey" className="text-white text-sm">API Key</Label>
+              <Input
+                id="deepseekApiKey"
+                type="password"
+                value={settings.deepseekApiKey}
+                onChange={(e) => updateSettings("deepseekApiKey", e.target.value)}
+                className="bg-white/10 border-primary/30 text-white hover:border-primary/50 focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 transition-all"
+                placeholder="sk-..."
+                style={{ 
+                  height: controlSize === 'xs' ? '38px' : controlSize === 'sm' ? '40px' : '44px',
+                  fontSize: controlSize === 'xs' ? '14px' : controlSize === 'sm' ? '15px' : '16px'
+                }}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="deepseekBaseUrl" className="text-white text-sm">Base URL</Label>
+              <Input
+                id="deepseekBaseUrl"
+                value={settings.deepseekBaseUrl}
+                onChange={(e) => updateSettings("deepseekBaseUrl", e.target.value)}
+                className="bg-white/10 border-primary/30 text-white hover:border-primary/50 focus:border-primary focus-visible:ring-1 focus-visible:ring-primary/50 transition-all"
+                placeholder="https://api.deepseek.com/v1"
+                style={{ 
+                  height: controlSize === 'xs' ? '38px' : controlSize === 'sm' ? '40px' : '44px',
+                  fontSize: controlSize === 'xs' ? '14px' : controlSize === 'sm' ? '15px' : '16px'
+                }}
+              />
+            </div>
           </div>
           
           {/* Temperature with improved slider */}

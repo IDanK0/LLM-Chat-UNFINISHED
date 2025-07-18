@@ -4,6 +4,7 @@ import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import Home from "@/pages/Home";
 import Chat from "@/pages/Chat";
+import Diagnostics from "@/pages/Diagnostics";
 import NotFound from "@/pages/not-found";
 import { MobileOptimization } from "@/components/MobileOptimization";
 
@@ -14,6 +15,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/chat/:id" component={Chat} />
+      <Route path="/diagnostics" component={Diagnostics} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -7,6 +7,8 @@ import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { ServerConfig } from "./config";
 import extractKeywordsRouter from "./routes/extract-keywords"; // Import the router for keyword extraction
+import { getHealthCheck } from "./utils/connectionMonitor";
+import { getApiModelName, getModelProvider } from "../client/src/lib/modelConfig";
 
 /**
  * Removes <think></think> tags from text
@@ -24,6 +26,19 @@ function removeThinkingTags(text: string): string {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Health check endpoint
+  app.get("/api/health", async (req: Request, res: Response) => {
+    try {
+      const health = await getHealthCheck();
+      res.json(health);
+    } catch (error) {
+      res.status(500).json({ 
+        error: "Health check failed",
+        timestamp: Date.now()
+      });
+    }
+  });
+
   // Register the router for keyword extraction
   app.use("/api/extract-keywords", extractKeywordsRouter);
 
@@ -171,15 +186,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Request received to improve text:", text.substring(0, 50) + (text.length > 50 ? '...' : ''));
       
       // Get the technical model name from the map using the UI name or use the default
-      let apiModelName: string;
-      if (modelName === "Gemma 3 12b it Instruct") {
-        apiModelName = "gemma-3-12b-it";
-      } else {
-        apiModelName = ServerConfig.MODEL_NAME_MAP[modelName] || "meta-llama-3.1-8b-instruct";
+      const apiModelName = getApiModelName(modelName);
+      const provider = getModelProvider(modelName);
+      
+      // Determine the appropriate API URL based on provider
+      let apiUrl: string;
+      switch (provider) {
+        case 'openrouter':
+          apiUrl = (apiSettings?.openRouterBaseUrl || 'https://openrouter.ai/api/v1').replace(/\/$/, '') + '/chat/completions';
+          break;
+        case 'deepseek':
+          apiUrl = (apiSettings?.deepseekBaseUrl || 'https://api.deepseek.com/v1').replace(/\/$/, '') + '/chat/completions';
+          break;
+        case 'local':
+        default:
+          apiUrl = apiSettings?.apiUrl || ServerConfig.DEFAULT_API_URL;
+          break;
       }
       
-      // Use the API URL from settings or the default from centralized configuration
-      const apiUrl = apiSettings?.apiUrl || ServerConfig.DEFAULT_API_URL;
+      console.log(`Improving text with model: ${apiModelName} via ${provider} at URL: ${apiUrl}`);
+      
+      // Determine the appropriate max_tokens value based on provider
+      let maxTokens: number;
+      if (provider === 'deepseek' || provider === 'openrouter') {
+        // For cloud APIs, use a reasonable default (they don't accept -1)
+        maxTokens = apiSettings?.maxTokens && apiSettings.maxTokens > 0 ? apiSettings.maxTokens : 2048;
+      } else {
+        // For local APIs, use -1 to indicate no limit, or the user's setting
+        maxTokens = apiSettings?.maxTokens ?? -1;
+      }
       
       console.log(`Improving text with model: ${apiModelName} at URL: ${apiUrl}`);
       
@@ -210,16 +245,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Sending request to ${apiUrl} with messages:`, JSON.stringify(messages, null, 2));
       
+      // Set up headers based on provider
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+      
+      switch (provider) {
+        case 'openrouter':
+          if (apiSettings?.openRouterApiKey) {
+            headers['Authorization'] = `Bearer ${apiSettings.openRouterApiKey}`;
+            headers['HTTP-Referer'] = 'https://localhost:3000';
+            headers['X-Title'] = 'LLMChat';
+          }
+          break;
+        case 'deepseek':
+          if (apiSettings?.deepseekApiKey) {
+            headers['Authorization'] = `Bearer ${apiSettings.deepseekApiKey}`;
+          }
+          break;
+      }
+      
       const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           model: apiModelName,
           messages: messages,
           temperature: apiSettings?.temperature || 0.7,
-          max_tokens: -1, // Always -1 to remove token limitations
+          max_tokens: maxTokens,
           stream: false
         })
       });

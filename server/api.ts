@@ -7,7 +7,7 @@ interface Message {
   isUserMessage: boolean;
   createdAt: string;
 }
-import { getApiModelName } from '../client/src/lib/modelConfig';
+import { getApiModelName, getModelProvider } from '../client/src/lib/modelConfig';
 
 // API request settings interface
 interface ApiRequestSettings {
@@ -17,6 +17,14 @@ interface ApiRequestSettings {
   stream?: boolean; // Kept for compatibility but won't be used
   webSearchEnabled?: boolean; // New field to enable web search
   webSearchResults?: string; // Pre-formatted web search results
+  
+  // OpenRouter settings
+  openRouterApiKey?: string;
+  openRouterBaseUrl?: string;
+  
+  // Deepseek settings
+  deepseekApiKey?: string;
+  deepseekBaseUrl?: string;
 }
 
 // Interface for messages formatted for Llama
@@ -40,16 +48,19 @@ class SimpleCache {
     if (item && Date.now() - item.timestamp < 3600000) { // Cache valid for one hour
       return item.value;
     }
+    // Remove expired item
+    if (item) {
+      this.cache.delete(key);
+    }
     return undefined;
   }
 
   set(key: string, value: string): void {
     // If cache is full, remove the oldest entry
     if (this.cache.size >= this.maxSize) {
-      const keys = Array.from(this.cache.keys());
-      if (keys.length > 0) {
-        const oldestKey = keys[0];
-      this.cache.delete(oldestKey);
+      const oldestKey = this.cache.keys().next().value;
+      if (oldestKey) {
+        this.cache.delete(oldestKey);
       }
     }
     this.cache.set(key, { value, timestamp: Date.now() });
@@ -57,6 +68,18 @@ class SimpleCache {
 
   clear(): void {
     this.cache.clear();
+  }
+
+  // Add method to clean expired entries
+  cleanExpired(): void {
+    const now = Date.now();
+    const keysToDelete: string[] = [];
+    this.cache.forEach((item, key) => {
+      if (now - item.timestamp >= 3600000) {
+        keysToDelete.push(key);
+      }
+    });
+    keysToDelete.forEach(key => this.cache.delete(key));
   }
 }
 
@@ -138,13 +161,52 @@ export async function generateAIResponse(
       return "There are no messages to process.";
     }
     
-    // Get the technical model name from the helper function
+    // Get the technical model name and provider from the helper function
     const apiModelName = getApiModelName(modelName);
-    const apiUrl = settings?.apiUrl || ServerConfig.DEFAULT_API_URL;
+    const provider = getModelProvider(modelName);
     
     // If web search is disabled, call the model directly with standard chat format
     if (!settings?.webSearchEnabled) {
-      console.log(`Generating response without web search using model: ${apiModelName}`);
+      console.log(`🚀 Generating response without web search using model: ${apiModelName} via ${provider}`);
+      
+      // Determine the appropriate API URL and headers based on provider
+      let apiUrl: string;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+      
+      switch (provider) {
+        case 'openrouter':
+          apiUrl = (settings?.openRouterBaseUrl || 'https://openrouter.ai/api/v1').replace(/\/$/, '') + '/chat/completions';
+          if (settings?.openRouterApiKey) {
+            headers['Authorization'] = `Bearer ${settings.openRouterApiKey}`;
+            headers['HTTP-Referer'] = 'https://localhost:3000';
+            headers['X-Title'] = 'LLMChat';
+          }
+          break;
+        case 'deepseek':
+          apiUrl = (settings?.deepseekBaseUrl || 'https://api.deepseek.com/v1').replace(/\/$/, '') + '/chat/completions';
+          if (settings?.deepseekApiKey) {
+            headers['Authorization'] = `Bearer ${settings.deepseekApiKey}`;
+          }
+          break;
+        case 'local':
+        default:
+          apiUrl = settings?.apiUrl || ServerConfig.DEFAULT_API_URL;
+          break;
+      }
+      
+      console.log(`🌐 API URL: ${apiUrl}`);
+      
+      // Determine the appropriate max_tokens value based on provider
+      let maxTokens: number;
+      if (provider === 'deepseek' || provider === 'openrouter') {
+        // For cloud APIs, use a reasonable default (they don't accept -1)
+        maxTokens = settings?.maxTokens && settings.maxTokens > 0 ? settings.maxTokens : 2048;
+      } else {
+        // For local APIs, use -1 to indicate no limit, or the user's setting
+        maxTokens = settings?.maxTokens ?? -1;
+      }
       
       let requestBody;
       
@@ -176,7 +238,7 @@ export async function generateAIResponse(
             }
           ],
           temperature: settings?.temperature ?? 0.7,
-          max_tokens: settings?.maxTokens ?? 2048,
+          max_tokens: maxTokens,
           stream: false
         };
       } else {
@@ -186,7 +248,7 @@ export async function generateAIResponse(
           model: apiModelName,
           messages: llamaMessages,
           temperature: settings?.temperature ?? 0.7,
-          max_tokens: settings?.maxTokens ?? -1,
+          max_tokens: maxTokens,
           stream: false
         };
       }
@@ -195,7 +257,7 @@ export async function generateAIResponse(
       
       const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(requestBody)
       });
       
@@ -226,7 +288,34 @@ export async function generateAIResponse(
     }
     
     // Se web search è abilitato, usa il formato di richiesta alternativo
-    console.log(`Generating response using model: ${apiModelName} at ${apiUrl}`);
+    console.log(`Generating response using model: ${apiModelName} via ${provider}`);
+    
+    // Determine the appropriate API URL and headers based on provider
+    let apiUrl: string;
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    };
+    
+    switch (provider) {
+      case 'openrouter':
+        apiUrl = (settings?.openRouterBaseUrl || 'https://openrouter.ai/api/v1').replace(/\/$/, '') + '/chat/completions';
+        if (settings?.openRouterApiKey) {
+          headers['Authorization'] = `Bearer ${settings.openRouterApiKey}`;
+          headers['HTTP-Referer'] = 'https://localhost:3000';
+          headers['X-Title'] = 'LLMChat';
+        }
+        break;
+      case 'deepseek':
+        apiUrl = (settings?.deepseekBaseUrl || 'https://api.deepseek.com/v1').replace(/\/$/, '') + '/chat/completions';
+        if (settings?.deepseekApiKey) {
+          headers['Authorization'] = `Bearer ${settings.deepseekApiKey}`;
+        }
+        break;
+      case 'local':
+      default:
+        apiUrl = settings?.apiUrl || ServerConfig.DEFAULT_API_URL;
+        break;
+    }
     
     // If web search is disabled, strip any 'Citations:' sections from previous AI messages
     let contextMessages: Message[] = messages;
@@ -311,6 +400,16 @@ Respond exclusively with the markdown-formatted answer in the same language as t
 When web search is enabled, use the provided 'Potentially Relevant Web Search Results' to enrich your response. Prefix your answer with "**Answer:**". For each fact you include, add an inline citation in the format [n](URL) immediately after it. After completing the answer, include a "**Citations:**" section listing **all** the sources you received (even if some were not cited), each as "[n]: [Title](URL)". Use **at least 4** citations and there is no maximum limit.`
       : baseSystemPrompt;
 
+    // Determine the appropriate max_tokens value based on provider
+    let maxTokens: number;
+    if (provider === 'deepseek' || provider === 'openrouter') {
+      // For cloud APIs, use a reasonable default (they don't accept -1)
+      maxTokens = settings?.maxTokens && settings.maxTokens > 0 ? settings.maxTokens : 2048;
+    } else {
+      // For local APIs, use -1 to indicate no limit, or the user's setting
+      maxTokens = settings?.maxTokens ?? -1;
+    }
+
     let requestBody;
     
     // MODIFICATO: Gestione speciale per i modelli Gemma
@@ -325,7 +424,7 @@ When web search is enabled, use the provided 'Potentially Relevant Web Search Re
           }
         ],
         temperature: settings?.temperature ?? 0.7,
-        max_tokens: settings?.maxTokens ?? 2048,
+        max_tokens: maxTokens,
         stream: false
       };
     } else {
@@ -339,7 +438,7 @@ When web search is enabled, use the provided 'Potentially Relevant Web Search Re
         model: apiModelName,
         messages: adaptedMessages,
         temperature: settings?.temperature ?? 0.7,
-        max_tokens: settings?.maxTokens ?? -1,
+        max_tokens: maxTokens,
         stream: false
       };
     }
@@ -359,9 +458,7 @@ When web search is enabled, use the provided 'Potentially Relevant Web Search Re
       // Execute the request with the same headers and parameters as improveText
       const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers,
         body: JSON.stringify(requestBody),
         signal: controller.signal
       });
@@ -445,7 +542,24 @@ When web search is enabled, use the provided 'Potentially Relevant Web Search Re
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(`Detailed error for model ${modelName}: ${errorMessage}`);
     
-    return `I'm sorry, but I can't generate a response at the moment. Please try with another model or contact support.`;
+    // Check for common connection errors
+    if (errorMessage.includes('ECONNREFUSED') || errorMessage.includes('fetch failed') || errorMessage.includes('connect')) {
+      return `❌ **Connection Error**\n\nCannot connect to the AI model server. Please check that:\n\n1. **LM Studio is running** and serving on port 1234\n2. **The model is loaded** in LM Studio\n3. **Local server is enabled** in LM Studio settings\n\nTry starting LM Studio, loading a model, and enabling the local server, then try again.`;
+    }
+    
+    if (errorMessage.includes('401') || errorMessage.includes('403')) {
+      return `❌ **Authentication Error**\n\nAPI authentication failed. Please check your API keys in the settings and try again.`;
+    }
+    
+    if (errorMessage.includes('404')) {
+      return `❌ **Model Not Found**\n\nThe selected model "${modelName}" is not available. Please try selecting a different model or check that the model is loaded in LM Studio.`;
+    }
+    
+    if (errorMessage.includes('429')) {
+      return `❌ **Rate Limit Exceeded**\n\nToo many requests. Please wait a moment and try again.`;
+    }
+    
+    return `❌ **Error**: ${errorMessage}\n\nPlease check the console for more details or try with a different model.`;
   }
 }
 
@@ -459,12 +573,48 @@ export async function improveText(
   }
   
   try {
-    // Get the technical model name from the helper function
+    // Get the technical model name and provider from the helper function
     const apiModelName = getApiModelName(modelName);
+    const provider = getModelProvider(modelName);
     
-    const apiUrl = settings?.apiUrl || ServerConfig.DEFAULT_API_URL;
+    // Determine the appropriate API URL and headers based on provider
+    let apiUrl: string;
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    };
     
-    console.log(`Improving text with model: ${apiModelName} at URL: ${apiUrl}`);
+    switch (provider) {
+      case 'openrouter':
+        apiUrl = (settings?.openRouterBaseUrl || 'https://openrouter.ai/api/v1').replace(/\/$/, '') + '/chat/completions';
+        if (settings?.openRouterApiKey) {
+          headers['Authorization'] = `Bearer ${settings.openRouterApiKey}`;
+          headers['HTTP-Referer'] = 'https://localhost:3000';
+          headers['X-Title'] = 'LLMChat';
+        }
+        break;
+      case 'deepseek':
+        apiUrl = (settings?.deepseekBaseUrl || 'https://api.deepseek.com/v1').replace(/\/$/, '') + '/chat/completions';
+        if (settings?.deepseekApiKey) {
+          headers['Authorization'] = `Bearer ${settings.deepseekApiKey}`;
+        }
+        break;
+      case 'local':
+      default:
+        apiUrl = settings?.apiUrl || ServerConfig.DEFAULT_API_URL;
+        break;
+    }
+    
+    console.log(`Improving text with model: ${apiModelName} via ${provider} at URL: ${apiUrl}`);
+    
+    // Determine the appropriate max_tokens value based on provider
+    let maxTokens: number;
+    if (provider === 'deepseek' || provider === 'openrouter') {
+      // For cloud APIs, use a reasonable default (they don't accept -1)
+      maxTokens = settings?.maxTokens && settings.maxTokens > 0 ? settings.maxTokens : 1000;
+    } else {
+      // For local APIs, use -1 to indicate no limit, or the user's setting
+      maxTokens = settings?.maxTokens ?? -1;
+    }
     
     // Cache implementation for repeated requests
     const cacheKey = JSON.stringify({ text, model: apiModelName, action: 'improve' });
@@ -488,7 +638,7 @@ export async function improveText(
           }
         ],
         temperature: settings?.temperature ?? 0.7,
-        max_tokens: settings?.maxTokens ?? 2048,
+        max_tokens: maxTokens,
         stream: false
       };
     } else {
@@ -508,7 +658,7 @@ export async function improveText(
         model: apiModelName,
         messages: messages,
         temperature: settings?.temperature ?? 0.7,
-        max_tokens: settings?.maxTokens ?? 1000,
+        max_tokens: maxTokens,
         stream: false
       };
     }
@@ -524,9 +674,7 @@ export async function improveText(
       // Execute the request
       const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers,
         body: JSON.stringify(requestBody),
         signal: controller.signal
       });

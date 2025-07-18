@@ -82,8 +82,10 @@ if (app.get("env") === "development") {
   logger.info("Starting server...");
   
   try {
+    // First register API routes
     const server = await registerRoutes(app);
 
+    // Then setup error handling
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
@@ -92,7 +94,7 @@ if (app.get("env") === "development") {
       res.status(status).json({ message });
     });
 
-    // Environment configuration
+    // Environment configuration - after API routes
     if (app.get("env") === "development") {
       logger.info("Configuring development environment");
       await setupVite(app, server);

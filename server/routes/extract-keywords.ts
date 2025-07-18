@@ -20,14 +20,14 @@ const router = Router();
  */
 router.post("/", async (req, res) => {
   try {
-    const { text, modelName, maxTokens } = req.body;
+    const { text, modelName, maxTokens, apiSettings } = req.body;
 
     if (!text || typeof text !== "string") {
       return res.status(400).json({ error: "Missing or invalid text" });
     }
 
     // Get the appropriate AI provider based on the selected model
-    const provider = getProviderForModel(modelName);
+    const provider = getProviderForModel(modelName, apiSettings);
     
     // System prompt to extract keywords
     const prompt = `

@@ -6,6 +6,17 @@ export interface ApiSettings {
   animationSpeed: number; // New setting for animation speed (words per second)
   autoGenerateTitle: boolean; // New setting for automatic title generation
   webSearchEnabled: boolean; // New setting to enable/disable web search
+  
+  // OpenRouter settings
+  openRouterApiKey: string;
+  openRouterBaseUrl: string;
+  
+  // Deepseek settings
+  deepseekApiKey: string;
+  deepseekBaseUrl: string;
+  
+  // Default model selection
+  defaultModel: string;
 }
 
 const DEFAULT_SETTINGS: ApiSettings = {
@@ -15,7 +26,18 @@ const DEFAULT_SETTINGS: ApiSettings = {
   stream: true,
   animationSpeed: 15,  // Default: 15 words per second
   autoGenerateTitle: true, // Default: activated
-  webSearchEnabled: false // Default: deactivated
+  webSearchEnabled: false, // Default: deactivated
+  
+  // OpenRouter settings
+  openRouterApiKey: '',
+  openRouterBaseUrl: 'https://openrouter.ai/api/v1',
+  
+  // Deepseek settings
+  deepseekApiKey: '',
+  deepseekBaseUrl: 'https://api.deepseek.com/v1',
+  
+  // Default model selection
+  defaultModel: 'Qwen3 0.6b'
 };
 
 export function getSettings(): ApiSettings {

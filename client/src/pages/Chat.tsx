@@ -17,7 +17,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { availableModels, defaultModel } from "@/lib/modelConfig";
+import { availableModels, getModelsByProvider } from "@/lib/modelConfig";
+import { getSettings } from "@/lib/settingsStore";
 
 export default function Chat() {
   const isMobile = useIsMobile();
@@ -25,7 +26,16 @@ export default function Chat() {
   const [, params] = useRoute<{ id: string }>("/chat/:id");
   const [, setLocation] = useLocation();
   const chatId = params ? params.id : "";
-  const [selectedModel, setSelectedModel] = useState(defaultModel);
+  
+  // Get default model from settings
+  const settings = getSettings();
+  const [selectedModel, setSelectedModel] = useState(settings.defaultModel);
+  
+  // Update selected model when settings change
+  useEffect(() => {
+    const currentSettings = getSettings();
+    setSelectedModel(currentSettings.defaultModel);
+  }, []);
   
   // Fetch chat data
   const { data: chat, isLoading: isLoadingChat, isError: isChatError } = useQuery<ChatType>({
@@ -112,17 +122,78 @@ export default function Chat() {
                     <ChevronDownIcon className="h-4 w-4 text-primary" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align={isMobile ? "center" : "start"} className="bg-[#101c38] border-primary/30 rounded-xl shadow-xl">
-                  {availableModels.map(model => (
-                    <DropdownMenuItem 
-                      key={model.displayName}
-                      onClick={() => setSelectedModel(model.displayName)}
-                      className={`text-white hover:bg-primary/20 rounded-lg transition-all duration-200 my-1 
-                        ${selectedModel === model.displayName ? "bg-primary/10 font-medium" : ""}`}
-                    >
-                      {model.displayName}
-                    </DropdownMenuItem>
-                  ))}
+                <DropdownMenuContent align={isMobile ? "center" : "start"} className="bg-[#101c38] border-primary/30 rounded-xl shadow-xl max-h-96 overflow-y-auto">
+                  {/* Local Models */}
+                  {getModelsByProvider('local').length > 0 && (
+                    <>
+                      <div className="px-3 py-2 text-xs font-semibold text-gray-400 border-b border-primary/20">
+                        Local Models
+                      </div>
+                      {getModelsByProvider('local').map(model => (
+                        <DropdownMenuItem 
+                          key={model.displayName}
+                          onClick={() => setSelectedModel(model.displayName)}
+                          className={`text-white hover:bg-primary/20 rounded-lg transition-all duration-200 my-1 
+                            ${selectedModel === model.displayName ? "bg-primary/10 font-medium" : ""}`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-400">
+                              local
+                            </span>
+                            {model.displayName}
+                          </div>
+                        </DropdownMenuItem>
+                      ))}
+                    </>
+                  )}
+                  
+                  {/* OpenRouter Models */}
+                  {getModelsByProvider('openrouter').length > 0 && (
+                    <>
+                      <div className="px-3 py-2 text-xs font-semibold text-gray-400 border-b border-primary/20 mt-2">
+                        OpenRouter Models
+                      </div>
+                      {getModelsByProvider('openrouter').map(model => (
+                        <DropdownMenuItem 
+                          key={model.displayName}
+                          onClick={() => setSelectedModel(model.displayName)}
+                          className={`text-white hover:bg-primary/20 rounded-lg transition-all duration-200 my-1 
+                            ${selectedModel === model.displayName ? "bg-primary/10 font-medium" : ""}`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs px-2 py-1 rounded-full bg-orange-500/20 text-orange-400">
+                              openrouter
+                            </span>
+                            {model.displayName}
+                          </div>
+                        </DropdownMenuItem>
+                      ))}
+                    </>
+                  )}
+                  
+                  {/* Deepseek Models */}
+                  {getModelsByProvider('deepseek').length > 0 && (
+                    <>
+                      <div className="px-3 py-2 text-xs font-semibold text-gray-400 border-b border-primary/20 mt-2">
+                        Deepseek Models
+                      </div>
+                      {getModelsByProvider('deepseek').map(model => (
+                        <DropdownMenuItem 
+                          key={model.displayName}
+                          onClick={() => setSelectedModel(model.displayName)}
+                          className={`text-white hover:bg-primary/20 rounded-lg transition-all duration-200 my-1 
+                            ${selectedModel === model.displayName ? "bg-primary/10 font-medium" : ""}`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs px-2 py-1 rounded-full bg-blue-500/20 text-blue-400">
+                              deepseek
+                            </span>
+                            {model.displayName}
+                          </div>
+                        </DropdownMenuItem>
+                      ))}
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
